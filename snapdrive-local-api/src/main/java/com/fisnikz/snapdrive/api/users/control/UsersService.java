@@ -3,6 +3,7 @@ package com.fisnikz.snapdrive.api.users.control;
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
 import com.fisnikz.snapdrive.api.users.entity.*;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
+import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.crypto.entity.MasterPasswordKeyInfo;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -15,7 +16,6 @@ import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class UsersService {
                 masterPasswordCryptoResults.getPbkdf2Iterations(), masterPasswordCryptoResults.getPbkdf2Salt());
 
 
-        return usersResourceClient.create(JsonbBuilder.create().toJson(request));
+        return usersResourceClient.create(request);
     }
 
     public Response updateProfile(String newUsername) {

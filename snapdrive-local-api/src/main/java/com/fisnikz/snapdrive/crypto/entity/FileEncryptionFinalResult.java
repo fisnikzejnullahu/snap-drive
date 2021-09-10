@@ -12,7 +12,7 @@ public class FileEncryptionFinalResult {
     private String signedPublicKey;
     private String base64FileKey;
     private String base64FileInitializationVector;
-    private List<SharedUsers> users;
+    private List<SharedUsers> sharedUsers;
 
     public FileEncryptionFinalResult() {
     }
@@ -20,7 +20,7 @@ public class FileEncryptionFinalResult {
     public FileEncryptionFinalResult(String base64FileKey, String base64FileInitializationVector) {
         this.base64FileKey = base64FileKey;
         this.base64FileInitializationVector = base64FileInitializationVector;
-        this.users = new ArrayList<>();
+        this.sharedUsers = new ArrayList<>();
     }
 
     public FileEncryptionFinalResult(String ownerId, String signedPublicKey, String base64FileKey, String base64FileInitializationVector) {
@@ -28,15 +28,15 @@ public class FileEncryptionFinalResult {
         this.signedPublicKey = signedPublicKey;
         this.base64FileKey = base64FileKey;
         this.base64FileInitializationVector = base64FileInitializationVector;
-        this.users = new ArrayList<>();
+        this.sharedUsers = new ArrayList<>();
     }
 
     public void shareFile(String userId, String base64FileKey) {
-        this.users.add(new SharedUsers(userId, base64FileKey));
+        this.sharedUsers.add(new SharedUsers(userId, base64FileKey));
     }
 
     public void removeUserShare(String userId) {
-        this.users.removeIf(sharedUsers -> sharedUsers.getUserId().equals(userId));
+        this.sharedUsers.removeIf(sharedUsers -> sharedUsers.getUserId().equals(userId));
     }
 
     public String getOwnerId() {
@@ -71,16 +71,16 @@ public class FileEncryptionFinalResult {
         this.base64FileInitializationVector = base64FileInitializationVector;
     }
 
-    public List<SharedUsers> getUsers() {
-        return users;
+    public List<SharedUsers> getSharedUsers() {
+        return sharedUsers;
     }
 
-    public void setUsers(List<SharedUsers> users) {
-        this.users = users;
+    public void setSharedUsers(List<SharedUsers> sharedUsers) {
+        this.sharedUsers = sharedUsers;
     }
 
     public SharedUsers getSharedInfoPerUser(String userId) {
-        return this.getUsers()
+        return this.getSharedUsers()
                 .stream()
                 .filter(sharedUsers -> sharedUsers.getUserId().equals(userId))
                 .findFirst().get();

@@ -1,4 +1,4 @@
-package com.fisnikz.snapdrive.api.users.entity;
+package com.fisnikz.snapdrive.crypto.entity;
 
 /**
  * @author Fisnik Zejnullahu

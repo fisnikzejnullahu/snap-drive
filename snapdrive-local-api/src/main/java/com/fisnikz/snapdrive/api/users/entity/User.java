@@ -1,5 +1,7 @@
 package com.fisnikz.snapdrive.api.users.entity;
 
+import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 

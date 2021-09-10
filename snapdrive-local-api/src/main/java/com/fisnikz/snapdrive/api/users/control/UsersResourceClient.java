@@ -1,6 +1,7 @@
 package com.fisnikz.snapdrive.api.users.control;
 
 import com.fisnikz.snapdrive.api.MyResponseExceptionMapper;
+import com.fisnikz.snapdrive.api.users.entity.CreateUserRequest;
 import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.api.users.entity.UserLoginRequest;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
@@ -19,7 +20,7 @@ import javax.ws.rs.core.Response;
 public interface UsersResourceClient {
 
     @POST
-    Response create(String request);
+    Response create(CreateUserRequest request);
 
     @PUT
     @Path("{id}")
@@ -34,5 +35,10 @@ public interface UsersResourceClient {
     Response login(UserLoginRequest loginRequest);
 
     @GET
-    JsonObject getUserWithGivenFields(@QueryParam("username") String recipientUsername, @QueryParam("fields") String fields);
+    JsonObject getUserWithGivenFields(
+            @QueryParam("id") String id,
+            @QueryParam("username") String recipientUsername,
+            @QueryParam("fields") String fields);
+
+
 }

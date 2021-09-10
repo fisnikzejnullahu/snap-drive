@@ -1,15 +1,13 @@
 package com.fisnikz.snapdrive.api.drive.control;
 
-import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
+import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
 import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
-import com.fisnikz.snapdrive.api.drive.entity.SharedFileMetadata;
+import com.fisnikz.snapdrive.api.drive.entity.ShareFileRequest;
 import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
-import com.fisnikz.snapdrive.api.users.entity.DriveFile;
 import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
-import com.fisnikz.snapdrive.api.users.entity.MasterPasswordCryptoResults;
-import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 import com.fisnikz.snapdrive.crypto.entity.FileEncryptionFinalResult;
+import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -21,26 +19,22 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.*;
-import javax.json.bind.JsonbBuilder;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.decodeFromBase64;
-import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.encodeToBase64;
 
 /**
  * @author Fisnik Zejnullahu
@@ -49,9 +43,9 @@ import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.encodeToBase64
 @Logged
 public class DriveService {
 
-    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snap-drive-fx-client\\snap-files\\";
-    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snap-drive-fx-client\\snap-files\\toUpload\\";
-    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snap-drive-fx-client\\snap-files\\local\\";
+    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
+    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
+    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
 
     @Inject
     CryptoService cryptoService;
@@ -70,28 +64,34 @@ public class DriveService {
     @Inject
     FileManager fileManager;
 
+    /*
+        From a frontend app we send the request to download the file from this given @fileLink param
+        The file is stored in server as encrypted so after we download the files from the @param fileLink
+        we need to decrypt it's bytes and then return the decrypted file to (frontend app)
+     */
     public String downloadDecryptedFile(String fileLink, boolean shared) {
         File folder = fileManager.downloadZipAndExtractToFolder(fileLink);
         try {
             if (!shared) {
-                return decrypt(folder, false);
+                return fileManager.decrypt(folder, loggedInUserInfo.getUserPrivateKey(), false);
             }
-            FileEncryptionFinalResult result = this.readConfigFileToEncryptionResult(folder);
+            FileEncryptionFinalResult result = fileManager.readConfigFileToEncryptionResult(folder);
 
             String base64FileKey = result.getSharedInfoPerUser(loggedInUserInfo.getUser().getId()).getBase64FileKey();
             SecretKey secretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(base64FileKey), loggedInUserInfo.getUserPrivateKey());
             IvParameterSpec IV = new IvParameterSpec(decodeFromBase64(result.getBase64FileInitializationVector()));
 
-            return doDecrypt(folder, secretKey, IV, false);
+            return fileManager.doDecrypt(folder, secretKey, IV, false);
         } catch (NoSuchPaddingException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
             e.printStackTrace();
             return null;
         }
     }
 
+    // @return all the files (with decrypted fileName) of the logged in user
     public JsonArray getAllFiles() {
         JsonArrayBuilder driveFiles = Json.createArrayBuilder();
-        this.driveResourceClient.allFiles(this.loggedInUserInfo.getUser().getId())
+        this.driveResourceClient.getFiles(this.loggedInUserInfo.getUser().getId())
                 .stream()
                 .map(this::downloadAndDecryptFileName)
                 .forEach(driveFiles::add);
@@ -99,21 +99,25 @@ public class DriveService {
         return driveFiles.build();
     }
 
-    public JsonObject upload(FileUploadForm driveFile) throws IOException {
-        File targetFile = new File(TO_UPLOAD_PATH + driveFile.fileName);
+    public JsonObject upload(FileUploadForm uploadForm) throws IOException {
+        File targetFile = new File(TO_UPLOAD_PATH + uploadForm.fileName);
 
+        /*
+            Because the application is accessed from localhost (frontend vue app), when we upload file from frontend
+            we need to copy those uploaded form bytes in a local (temporary file) so we can do the encryption to that file.
+            And in the end we will delete these local files and only upload encrypted bytes to server!
+         */
         Files.copy(
-                driveFile.fileData,
+                uploadForm.fileData,
                 targetFile.toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
 
         File encryptedZipFile = encryptFile(targetFile);
 
         JsonObject uploadedFilePath = doUpload(encryptedZipFile);
-        resetToUploadFolder();
+        fileManager.resetToUploadFolder();
 
         return uploadedFilePath;
-        //return more info, where is url for uploaded
     }
 
     private File encryptFile(File fileToEncrypt) throws IOException {
@@ -128,7 +132,7 @@ public class DriveService {
             File encryptedZipFile = fileManager.toZipFile(outputFolder);
             System.out.println("Local before: " + encryptedZipFile.getName());
 
-            deleteFolder(outputFolder);
+            fileManager.deleteFolder(outputFolder);
 
             return encryptedZipFile;
 
@@ -162,7 +166,6 @@ public class DriveService {
         }
 
         return this.driveResourceClient.update(fileId, loggedInUserInfo.getUser().getId(), driveFile);
-        //return more info, where is url for uploaded
     }
 
     private JsonObjectBuilder downloadAndDecryptFileName(DriveFile driveFile) {
@@ -170,7 +173,7 @@ public class DriveService {
 
         String decryptedFileName;
         try {
-            decryptedFileName = decrypt(downloadedFolder, true);
+            decryptedFileName = fileManager.decrypt(downloadedFolder, loggedInUserInfo.getUserPrivateKey(), true);
         } catch (NoSuchPaddingException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
             e.printStackTrace();
             return Json.createObjectBuilder()
@@ -186,49 +189,94 @@ public class DriveService {
                 .add("readableCreatedAt", Instant.ofEpochMilli(driveFile.getCreatedAt()).toString());
     }
 
-    private String decrypt(File folder, boolean onlyFileName) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
-        FileEncryptionFinalResult result = readConfigFileToEncryptionResult(folder);
-        SecretKey secretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(result.getBase64FileKey()), loggedInUserInfo.getUserPrivateKey());
-        return doDecrypt(folder, secretKey, new IvParameterSpec(decodeFromBase64(result.getBase64FileInitializationVector())), onlyFileName);
+
+    public JsonObject deleteFile(String fileId) {
+        JsonObject body = driveResourceClient.delete(fileId);
+        if (body.getBoolean("deleted")) {
+            loggedInUserInfo.getUser().getFiles().removeIf(file -> file.getId().equals(fileId));
+        }
+        return body;
     }
 
-    private String doDecrypt(File folder, SecretKey secretKey, IvParameterSpec IV, boolean onlyFileName) {
+    public MasterPasswordCryptoResults updateMasterPassword(String newMasterPassword, String oldMasterPassword) {
         try {
-            File encryptedFile = folder.listFiles(pathname -> !pathname.getName().contains(".config"))[0];
+            MasterPasswordCryptoResults masterPasswordCryptoResults = cryptoService.doCryptoToMasterPassword(newMasterPassword);
 
-            byte[] decryptedFileContent = cryptoService.decryptFile(encryptedFile, secretKey, IV);
-            byte[] decryptedFileName = cryptoService.decryptBytes(decodeFromBase64(encryptedFile.getName()), secretKey, IV);
+            for (DriveFile originalDriveFile : driveResourceClient.getFiles(loggedInUserInfo.getUser().getId())) {
+                File folder = fileManager.downloadZipAndExtractToFolder(originalDriveFile.getLink());
+                fileManager.updateFileKey(folder, loggedInUserInfo.getUser(), masterPasswordCryptoResults.getPublicKeyBase64(), oldMasterPassword);
+                File zipFile = fileManager.toZipFile(folder);
 
-            if (onlyFileName) {
-                return new String(decryptedFileName);
+                DriveFile updatedFile = updateFile(originalDriveFile.getId(), zipFile);
+                originalDriveFile.setLink(updatedFile.getLink());
+                originalDriveFile.setSize(updatedFile.getSize());
             }
 
-            File decryptedFile = new File(LOCAL_DECRYPTED_FILES_PATH + new String(decryptedFileName));
-            decryptedFile.createNewFile();
-            Files.write(Path.of(decryptedFile.getAbsolutePath()), decryptedFileContent, StandardOpenOption.WRITE);
-
-            return decryptedFile.getAbsolutePath();
-
+            fileManager.resetToUploadFolder();
+            return masterPasswordCryptoResults;
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("something happened");
+            return null;
         }
     }
 
+    public JsonObject shareFile(String fileId, String recipientUsername) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
+        DriveFile originalDriveFile = driveResourceClient.getFile(fileId);
+        JsonObject userWithGivenFields = usersResourceClient.getUserWithGivenFields(null, recipientUsername, "userId,username,public_key");
 
-    private void deleteFolder(File outputFile) {
-        for (File file : outputFile.listFiles()) {
-            file.delete();
+        File downloadedFolder = fileManager.downloadZipAndExtractToFolder(originalDriveFile.getLink());
+        fileManager.addUserToConfigFile(downloadedFolder, userWithGivenFields.getString("userId"), loggedInUserInfo.getUserPrivateKey(), userWithGivenFields.getString("publicKey"));
+
+        File toZipFile = fileManager.toZipFile(downloadedFolder);
+        DriveFile updatedFile = updateFile(originalDriveFile.getId(), toZipFile);
+
+        originalDriveFile.setLink(updatedFile.getLink());
+        originalDriveFile.setSize(updatedFile.getSize());
+
+        ShareFileRequest metadata = new ShareFileRequest(originalDriveFile.getId(), userWithGivenFields.getString("username"));
+
+        return driveResourceClient.shareFile(metadata);
+    }
+
+    public JsonArray getUserSharedFiles() {
+        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+
+        driveResourceClient.getSharedFilesToUser(loggedInUserInfo.getUser().getId())
+                .stream()
+                .map(JsonValue::asJsonObject)
+                .map(this::asResponseJsonFile)
+                .forEach(arrayBuilder::add);
+
+        return arrayBuilder.build();
+    }
+
+    // modifies original jsonObject that does not have included (decrypted fileName), and also size and createdAt in beautified forms
+    private JsonObject asResponseJsonFile(JsonObject jsonObject) {
+        System.out.println(jsonObject);
+        try {
+            File downloadedFolder = fileManager.downloadZipAndExtractToFolder(jsonObject.getJsonObject("file").getString("link"));
+            FileEncryptionFinalResult result = fileManager.readConfigFileToEncryptionResult(downloadedFolder);
+
+            String base64FileKey = result.getSharedInfoPerUser(loggedInUserInfo.getUser().getId()).getBase64FileKey();
+            SecretKey secretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(base64FileKey), loggedInUserInfo.getUserPrivateKey());
+            IvParameterSpec IV = new IvParameterSpec(decodeFromBase64(result.getBase64FileInitializationVector()));
+
+            String decryptedFileName = fileManager.doDecrypt(downloadedFolder, secretKey, IV, true);
+
+            JsonObject fileJson = Json.createObjectBuilder(jsonObject.getJsonObject("file"))
+                    .add("fileName", decryptedFileName)
+                    .add("readableSize", humanReadableByteCountBin(jsonObject.getJsonObject("file").getInt("size")))
+                    .add("readableCreatedAt", Instant.ofEpochMilli(jsonObject.getJsonObject("file").getInt("createdAt")).toString())
+                    .build();
+
+            return Json.createObjectBuilder(jsonObject)
+                    .add("file", fileJson)
+                    .build();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        outputFile.delete();
     }
-
-    private void resetToUploadFolder() {
-        File file = new File(TO_UPLOAD_PATH);
-        deleteFolder(file);
-        file.mkdirs();
-    }
-
 
     public JsonObject calculateTotalStorageSize() {
         Long totalBytes = loggedInUserInfo.getUser().getFiles().stream().map(DriveFile::getSize).reduce(0L, Long::sum);
@@ -238,7 +286,7 @@ public class DriveService {
                 .build();
     }
 
-    public String humanReadableByteCountBin(long bytes) {
+    private String humanReadableByteCountBin(long bytes) {
         long absB = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
         if (absB < 1024) {
             return bytes + " B";
@@ -259,142 +307,6 @@ public class DriveService {
         double usedSpace = (double) bytes / 1024 / 1024 / 1024;
 
         return (usedSpace / totalFreeSpace) * 100;
-    }
-
-    public JsonObject deleteFile(String fileId) {
-        JsonObject body = driveResourceClient.delete(fileId, loggedInUserInfo.getUser().getId());
-        if (body.getBoolean("deleted")) {
-            loggedInUserInfo.getUser().getFiles().removeIf(fileMetadata -> fileMetadata.getId().equals(fileId));
-        }
-        return body;
-    }
-
-    public MasterPasswordCryptoResults updateMasterPassword(String newMasterPassword, String oldMasterPassword) {
-        try {
-            MasterPasswordCryptoResults masterPasswordCryptoResults = cryptoService.doCryptoToMasterPassword(newMasterPassword);
-
-            for (DriveFile originalDriveFile : loggedInUserInfo.getUser().getFiles()) {
-                System.out.println("originalDriveFile = " + originalDriveFile.getId());
-                File folder = fileManager.downloadZipAndExtractToFolder(originalDriveFile.getLink());
-                updateFileKey(folder, loggedInUserInfo.getUser(), masterPasswordCryptoResults.getPublicKeyBase64(), oldMasterPassword);
-                File zipFile = fileManager.toZipFile(folder);
-
-                DriveFile updatedFile = updateFile(originalDriveFile.getId(), zipFile);
-                originalDriveFile.setLink(updatedFile.getLink());
-                originalDriveFile.setFileSharesRelationIds(updatedFile.getFileSharesRelationIds());
-                originalDriveFile.setSize(updatedFile.getSize());
-            }
-
-            resetToUploadFolder();
-            return masterPasswordCryptoResults;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private void updateFileKey(File file, User user, String newPublicKeyBase64, String oldMasterPassword) {
-        try {
-            File configFile = new File(file.getAbsolutePath() + "/.config");
-
-            FileEncryptionFinalResult result = JsonbBuilder.create()
-                    .fromJson(new ByteArrayInputStream(Files.readAllBytes(Path.of(configFile.getAbsolutePath()))), FileEncryptionFinalResult.class);
-
-            String newKey = this.cryptoService.updateFileEncryptionKey(oldMasterPassword, user.getDerivativeSalt(),
-                    user.getPrivateKey(), user.getDerivativeIterations(), user.getNonce(),
-                    result.getBase64FileKey(), newPublicKeyBase64);
-            result.setBase64FileKey(newKey);
-            String newJsonConfig = JsonbBuilder.create().toJson(result);
-
-            Files.writeString(Path.of(configFile.getAbsolutePath()), newJsonConfig, StandardOpenOption.WRITE);
-        } catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException | IllegalBlockSizeException | InvalidKeyException | BadPaddingException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public JsonObject shareFile(DriveFile originalDriveFile, String recipientUsername) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
-        JsonObject userWithGivenFields = usersResourceClient.getUserWithGivenFields(recipientUsername, "userId,username,public_key");
-
-        File downloadedFolder = fileManager.downloadZipAndExtractToFolder(originalDriveFile.getLink());
-        addUserToConfigFile(downloadedFolder, userWithGivenFields.getString("userId"), userWithGivenFields.getString("publicKey"));
-
-        File toZipFile = fileManager.toZipFile(downloadedFolder);
-        DriveFile updatedFile = updateFile(originalDriveFile.getId(), toZipFile);
-
-        originalDriveFile.setLink(updatedFile.getLink());
-        originalDriveFile.setSize(updatedFile.getSize());
-        originalDriveFile.setFileSharesRelationIds(updatedFile.getFileSharesRelationIds());
-
-        SharedFileMetadata metadata = new SharedFileMetadata(
-                originalDriveFile.getId(),
-                loggedInUserInfo.getUser().getId(), loggedInUserInfo.getUser().getUsername(),
-                userWithGivenFields.getString("userId"),
-                userWithGivenFields.getString("username"));
-
-        return driveResourceClient.shareFile(metadata);
-    }
-
-    private void addUserToConfigFile(File folder, String userId, String userPublicKeyBase64) throws IOException, NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
-        FileEncryptionFinalResult result = readConfigFileToEncryptionResult(folder);
-
-        if (result.getUsers().stream().anyMatch(sharedUsers -> sharedUsers.getUserId().equals(userId))) {
-            throw new WebApplicationException(ResponseWithJsonBodyBuilder.withInformation(409, "File is already shared to given user!"));
-        }
-
-        String base64EncryptedFileKey = result.getBase64FileKey();
-        SecretKey fileSecretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(base64EncryptedFileKey), loggedInUserInfo.getUserPrivateKey());
-
-        PublicKey userPublicKey = (PublicKey) cryptoService.generateRSAKeyFromBase64(userPublicKeyBase64, false);
-
-        byte[] encryptedFileKeyWithRecipientPublicKey = cryptoService.getRsaService().encrypt(fileSecretKey.getEncoded(), userPublicKey);
-
-        String recipientFileKeyBase64 = encodeToBase64(encryptedFileKeyWithRecipientPublicKey);
-        result.shareFile(userId, recipientFileKeyBase64);
-
-        Files.writeString(Path.of(folder.getAbsolutePath() + "/.config"), JsonbBuilder.create().toJson(result), StandardOpenOption.WRITE);
-    }
-
-    public JsonArray getUserSharedFiles() {
-        List<SharedFileMetadata> list = driveResourceClient.userSharedFiles(loggedInUserInfo.getUser().getId());
-
-        JsonArrayBuilder jsonFiles = Json.createArrayBuilder();
-
-        list.forEach(item -> {
-            try {
-                DriveFile driveFile = driveResourceClient.getFile(item.getFileId());
-                File downloadedFolder = fileManager.downloadZipAndExtractToFolder(driveFile.getLink());
-
-                FileEncryptionFinalResult result = this.readConfigFileToEncryptionResult(downloadedFolder);
-
-                String base64FileKey = result.getSharedInfoPerUser(loggedInUserInfo.getUser().getId()).getBase64FileKey();
-                SecretKey secretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(base64FileKey), loggedInUserInfo.getUserPrivateKey());
-                IvParameterSpec IV = new IvParameterSpec(decodeFromBase64(result.getBase64FileInitializationVector()));
-
-                String decryptedFileName = doDecrypt(downloadedFolder, secretKey, IV, true);
-
-                JsonObjectBuilder jsonMetadata = Json.createObjectBuilder(driveFile.toJsonObject())
-                        .add("fileName", decryptedFileName)
-                        .add("readableSize", humanReadableByteCountBin(driveFile.getSize()))
-                        .add("readableCreatedAt", Instant.ofEpochMilli(driveFile.getCreatedAt()).toString())
-                        .add("sharedBy", item.getOwnerUsername());
-
-                jsonMetadata.remove("fileSharesRelationIds");
-
-                jsonFiles.add(jsonMetadata);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        });
-
-        return jsonFiles.build();
-    }
-
-    private FileEncryptionFinalResult readConfigFileToEncryptionResult(File folder) throws IOException {
-        File configFile = new File(folder.getAbsolutePath() + "/.config");
-
-        return JsonbBuilder.create()
-                .fromJson(new ByteArrayInputStream(Files.readAllBytes(Path.of(configFile.getAbsolutePath()))), FileEncryptionFinalResult.class);
     }
 
 

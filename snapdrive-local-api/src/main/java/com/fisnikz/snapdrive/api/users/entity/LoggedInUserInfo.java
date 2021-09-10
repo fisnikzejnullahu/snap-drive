@@ -23,7 +23,7 @@ import java.security.spec.InvalidKeySpecException;
  * @author Fisnik Zejnullahu
  */
 @ApplicationScoped
-@Startup
+//@Startup
 public class LoggedInUserInfo {
 
     @Inject
@@ -38,8 +38,8 @@ public class LoggedInUserInfo {
 
     @PostConstruct
     public void init() {
-        this.login("fisnikz", "123");
-        this.unlockFiles("1234");
+//        this.login("cniku2", "123");
+//        this.unlockFiles("123");
     }
 
     //OLD

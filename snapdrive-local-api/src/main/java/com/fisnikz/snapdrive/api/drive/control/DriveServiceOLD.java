@@ -5,7 +5,7 @@
 //import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
 //import com.fisnikz.snapdrive.api.users.entity.FileMetadata;
 //import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
-//import com.fisnikz.snapdrive.api.users.entity.MasterPasswordCryptoResults;
+//import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 //import com.fisnikz.snapdrive.api.users.entity.User;
 //import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 //import com.fisnikz.snapdrive.crypto.entity.FileEncryptionFinalResult;
@@ -91,7 +91,7 @@
 //
 //    public JsonArray getAllFiles() {
 //        JsonArrayBuilder driveFiles = Json.createArrayBuilder();
-//        this.driveResourceClient.allFiles(this.loggedInUserInfo.getUser().getId())
+//        this.driveResourceClient.getFiles(this.loggedInUserInfo.getUser().getId())
 //                .stream()
 //                .map(this::downloadAndDecryptFileName)
 //                .forEach(driveFiles::add);
@@ -403,7 +403,7 @@
 //    }
 //
 //    public JsonArray getUserSharedFiles() {
-//        List<SharedFileMetadata> list = driveResourceClient.userSharedFiles(loggedInUserInfo.getUser().getId());
+//        List<SharedFileMetadata> list = driveResourceClient.getSharedFilesToUser(loggedInUserInfo.getUser().getId());
 //
 //        JsonArrayBuilder jsonFiles = Json.createArrayBuilder();
 //

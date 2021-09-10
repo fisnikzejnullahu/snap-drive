@@ -1,6 +1,6 @@
 package com.fisnikz.snapdrive.crypto.boundary;
 
-import com.fisnikz.snapdrive.api.users.entity.MasterPasswordCryptoResults;
+import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.crypto.control.AesService;
 import com.fisnikz.snapdrive.crypto.control.ChaChaService;
@@ -120,20 +120,11 @@ public class CryptoService {
 
         MasterPasswordKeyInfo masterPasswordKeyInfo = generateDerivativePasswordWithSalt(oldMasterPassword, saltBase64, derivativeIterations);
         PrivateKey oldPrivateKey = this.decryptPrivateKeyUsingMasterKey(oldPrivateKeyBase64, masterPasswordKeyInfo.getSecretKey(), nonceBase64);
-        byte[] decrypted = this.rsaService.decrypt(decodeFromBase64(oldEncryptedFileKeyBase64), oldPrivateKey);
+        byte[] decryptedFileKey = this.rsaService.decrypt(decodeFromBase64(oldEncryptedFileKeyBase64), oldPrivateKey);
 
         PublicKey newPublicKey = (PublicKey) generateRSAKeyFromBase64(newPublicKeyBase64, false);
-        byte[] newEncryptedFileKey = this.encryptFileKeyWithPubKey(new SecretKeySpec(decrypted, "AES"), newPublicKey);
+        byte[] newEncryptedFileKey = this.encryptFileKeyWithPubKey(new SecretKeySpec(decryptedFileKey, "AES"), newPublicKey);
         return encodeToBase64(newEncryptedFileKey);
-    }
-
-    public FileEncryptionResult encryptFileOld(File inputFile, SecretKey userEncryptionKeysInfo) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, IOException {
-        FileEncryptionInfo fileEncryptionInfo = aesService.encryptFile(readFileBytes(inputFile), inputFile.getName());
-        FileKeyEncryptionInfo fileKeyEncryptionInfo = (FileKeyEncryptionInfo) aesService.encryptWithKey(
-                fileEncryptionInfo.getSecretKey().getEncoded(),
-                userEncryptionKeysInfo);
-
-        return new FileEncryptionResult(fileKeyEncryptionInfo, fileEncryptionInfo);
     }
 
     public byte[] decryptFile(File inputFile, SecretKey key, IvParameterSpec iv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, IOException {

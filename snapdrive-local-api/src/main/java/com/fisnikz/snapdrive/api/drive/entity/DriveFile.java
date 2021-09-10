@@ -1,28 +1,21 @@
-package com.fisnikz.snapdrive.users.entity;
+package com.fisnikz.snapdrive.api.drive.entity;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.bind.JsonbBuilder;
+import java.io.StringReader;
 import java.util.ArrayList;
 
 /**
  * @author Fisnik Zejnullahu
  */
 public class DriveFile {
-
     private String id;
     private String link;
     private long size;
     private long createdAt;
-    private ArrayList<String> fileSharesRelationIds;
 
     public DriveFile() {
-    }
-
-    public DriveFile(String id, String link, long size, long createdAt, ArrayList<String> fileSharesRelationIds) {
-        System.out.println("CONSTRUCTOR CALLED!!!!!!!!!!!!!!!!!!!!!!!!");
-        this.id = id;
-        this.link = link;
-        this.size = size;
-        this.createdAt = createdAt;
-        this.fileSharesRelationIds = fileSharesRelationIds;
     }
 
     public String getId() {
@@ -57,11 +50,17 @@ public class DriveFile {
         this.createdAt = createdAt;
     }
 
-    public ArrayList<String> getFileSharesRelationIds() {
-        return fileSharesRelationIds;
+    @Override
+    public String toString() {
+        return "FileMetadata{" +
+                "id='" + id + '\'' +
+                ", link='" + link + '\'' +
+                ", size=" + size +
+                ", createdAt=" + createdAt +
+                '}';
     }
 
-    public void setFileSharesRelationIds(ArrayList<String> fileSharesRelationIds) {
-        this.fileSharesRelationIds = fileSharesRelationIds;
+    public JsonObject toJsonObject() {
+        return Json.createReader(new StringReader(JsonbBuilder.create().toJson(this))).readObject();
     }
 }

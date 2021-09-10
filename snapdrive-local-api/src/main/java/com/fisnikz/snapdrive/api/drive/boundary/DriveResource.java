@@ -3,7 +3,6 @@ package com.fisnikz.snapdrive.api.drive.boundary;
 import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
 import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
-import com.fisnikz.snapdrive.api.users.entity.DriveFile;
 import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
@@ -50,6 +49,7 @@ public class DriveResource {
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces(MediaType.APPLICATION_JSON)
     public JsonObject upload(@MultipartForm FileUploadForm form) throws IOException {
+        System.out.println("form = " + form.fileName);
         return driveService.upload(form);
     }
 
@@ -81,12 +81,8 @@ public class DriveResource {
     }
 
     @POST
-    @Path("file-shares")
-    public Response shareFile(@QueryParam("recipientUsername") String recipientUsername, DriveFile driveFile) {
-        if (driveFile == null) {
-            return ResponseWithJsonBodyBuilder.withInformation(400, "There is no file specified!");
-        }
-
+    @Path("{id}/file-shares")
+    public Response shareFile(@PathParam("id") String fileId, @QueryParam("recipientUsername") String recipientUsername) {
         if (recipientUsername
                 .toLowerCase()
                 .equals(loggedInUserInfo.getUser().getUsername().toLowerCase())) {
@@ -94,7 +90,7 @@ public class DriveResource {
         }
 
         try {
-            JsonObject data = driveService.shareFile(driveFile, recipientUsername);
+            JsonObject data = driveService.shareFile(fileId, recipientUsername);
             return Response.ok(data).build();
         } catch (NoSuchPaddingException e) {
             e.printStackTrace();
