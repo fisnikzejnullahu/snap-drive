@@ -3,15 +3,16 @@ package com.fisnikz.snapdrive.api.drive.entity;
 /**
  * @author Fisnik Zejnullahu
  */
-public class ShareFileRequest {
+public class FileShare {
 
     private String fileId;
     private String recipientUsername;
+    private String sharedAt;
 
-    public ShareFileRequest() {
+    public FileShare() {
     }
 
-    public ShareFileRequest(String fileId, String recipientUsername) {
+    public FileShare(String fileId, String recipientUsername) {
         this.fileId = fileId;
         this.recipientUsername = recipientUsername;
     }
@@ -30,5 +31,13 @@ public class ShareFileRequest {
 
     public void setRecipientUsername(String recipientUsername) {
         this.recipientUsername = recipientUsername;
+    }
+
+    public String getSharedAt() {
+        return sharedAt;
+    }
+
+    public void setSharedAt(String sharedAt) {
+        this.sharedAt = sharedAt;
     }
 }

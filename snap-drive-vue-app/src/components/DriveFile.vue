@@ -70,6 +70,8 @@ export default {
     uploading: Boolean,
     file: Object,
     sharedFile: Boolean,
+    sharedAt: String,
+    sharedBy: String,
   },
   mounted() {
     console.log(this.sharedFile);
@@ -95,7 +97,7 @@ export default {
   },
   methods: {
     showFileInformationModal() {
-      this.$emit("open-modal");
+      this.$emit("open-modal", this.sharedAt, this.sharedBy);
     },
     fileIcon(fileName) {
       switch (fileName.substring(fileName.lastIndexOf(".") + 1)) {

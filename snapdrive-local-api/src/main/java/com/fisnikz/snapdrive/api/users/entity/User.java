@@ -1,7 +1,10 @@
 package com.fisnikz.snapdrive.api.users.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
 
+import javax.json.bind.annotation.JsonbDateFormat;
+import javax.json.bind.annotation.JsonbTransient;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -16,13 +19,12 @@ public class User {
     private String passwordSalt;
     private int derivativeIterations;
     private String derivativeSalt;
+
     private String privateKey;
     private String publicKey;
     private String nonce;
     //    private int counter;
-    private LocalDateTime registerAt;
-
-    private ArrayList<DriveFile> files;
+    private String registerAt;
 
     public User() {
     }
@@ -35,14 +37,6 @@ public class User {
         this.id = id;
     }
 
-    public ArrayList<DriveFile> getFiles() {
-        return files;
-    }
-
-    public void setFiles(ArrayList<DriveFile> files) {
-        this.files = files;
-    }
-
     public String getUsername() {
         return username;
     }
@@ -51,6 +45,7 @@ public class User {
         this.username = username;
     }
 
+    @JsonbTransient
     public String getHashedPassword() {
         return hashedPassword;
     }
@@ -59,6 +54,7 @@ public class User {
         this.hashedPassword = hashedPassword;
     }
 
+    @JsonbTransient
     public String getPasswordSalt() {
         return passwordSalt;
     }
@@ -67,6 +63,7 @@ public class User {
         this.passwordSalt = passwordSalt;
     }
 
+    @JsonbTransient
     public int getDerivativeIterations() {
         return derivativeIterations;
     }
@@ -75,6 +72,7 @@ public class User {
         this.derivativeIterations = derivativeIterations;
     }
 
+    @JsonbTransient
     public String getDerivativeSalt() {
         return derivativeSalt;
     }
@@ -83,6 +81,7 @@ public class User {
         this.derivativeSalt = derivativeSalt;
     }
 
+    @JsonbTransient
     public String getPrivateKey() {
         return privateKey;
     }
@@ -91,6 +90,7 @@ public class User {
         this.privateKey = privateKey;
     }
 
+    @JsonbTransient
     public String getPublicKey() {
         return publicKey;
     }
@@ -98,7 +98,7 @@ public class User {
     public void setPublicKey(String publicKey) {
         this.publicKey = publicKey;
     }
-
+    @JsonbTransient
     public String getNonce() {
         return nonce;
     }
@@ -115,11 +115,11 @@ public class User {
 //        this.counter = counter;
 //    }
 
-    public LocalDateTime getRegisterAt() {
+    public String getRegisterAt() {
         return registerAt;
     }
 
-    public void setRegisterAt(LocalDateTime registerAt) {
+    public void setRegisterAt(String registerAt) {
         this.registerAt = registerAt;
     }
 }

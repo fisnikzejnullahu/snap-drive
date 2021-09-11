@@ -4,7 +4,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.bind.JsonbBuilder;
 import java.io.StringReader;
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Fisnik Zejnullahu
@@ -13,9 +13,18 @@ public class DriveFile {
     private String id;
     private String link;
     private long size;
-    private long createdAt;
+
+    private String createdAt;
+    private String userId;
+    private List<FileShare> shares;
 
     public DriveFile() {
+    }
+
+    public DriveFile(String link, long size, String userId) {
+        this.link = link;
+        this.size = size;
+        this.userId = userId;
     }
 
     public String getId() {
@@ -42,12 +51,28 @@ public class DriveFile {
         this.size = size;
     }
 
-    public long getCreatedAt() {
+    public String getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(long createdAt) {
+    public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public List<FileShare> getShares() {
+        return shares;
+    }
+
+    public void setShares(List<FileShare> shares) {
+        this.shares = shares;
     }
 
     @Override
@@ -61,6 +86,9 @@ public class DriveFile {
     }
 
     public JsonObject toJsonObject() {
-        return Json.createReader(new StringReader(JsonbBuilder.create().toJson(this))).readObject();
+        System.out.println("DRIVE FILE TO JSON");
+        JsonObject jsonObject = Json.createReader(new StringReader(JsonbBuilder.create().toJson(this))).readObject();
+        System.out.println(jsonObject);
+        return jsonObject;
     }
 }

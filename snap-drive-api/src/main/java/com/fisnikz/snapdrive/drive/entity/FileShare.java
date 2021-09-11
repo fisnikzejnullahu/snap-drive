@@ -4,7 +4,8 @@ import com.fisnikz.snapdrive.users.entity.User;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 
 import javax.json.bind.annotation.JsonbTransient;
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.ManyToOne;
 import java.time.LocalDateTime;
 
 /**
@@ -25,10 +26,10 @@ public class FileShare extends PanacheEntity {
     public FileShare() {
     }
 
-    public FileShare(DriveFile file, User recipientUser) {
+    public FileShare(DriveFile file, User recipientUser, LocalDateTime sharedAt) {
         this.file = file;
         this.recipientUser = recipientUser;
-        this.sharedAt = LocalDateTime.now();
+        this.sharedAt = sharedAt;
     }
 
     @Override

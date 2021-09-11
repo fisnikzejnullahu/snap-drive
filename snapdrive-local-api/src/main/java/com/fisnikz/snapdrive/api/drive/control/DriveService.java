@@ -1,8 +1,8 @@
 package com.fisnikz.snapdrive.api.drive.control;
 
 import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
+import com.fisnikz.snapdrive.api.drive.entity.FileShare;
 import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
-import com.fisnikz.snapdrive.api.drive.entity.ShareFileRequest;
 import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
 import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
@@ -19,9 +19,10 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.*;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
+import javax.json.bind.Jsonb;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -31,8 +32,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
-import java.time.Instant;
-import java.util.UUID;
+import java.util.List;
+import java.util.Locale;
 
 import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.decodeFromBase64;
 
@@ -64,6 +65,39 @@ public class DriveService {
     @Inject
     FileManager fileManager;
 
+    @Inject
+    GoogleCloudService googleCloudService;
+    @Inject
+    Jsonb jsonb;
+
+    // @return all the files (with decrypted fileName) of the logged in user
+    public JsonObject getAllFiles() {
+        JsonArrayBuilder driveFiles = Json.createArrayBuilder();
+        List<DriveFile> userFiles = this.driveResourceClient.getFiles(this.loggedInUserInfo.getUser().getId());
+        userFiles.stream()
+                .map(this::downloadAndDecryptFileName)
+                .forEach(driveFiles::add);
+
+        Long totalSize = userFiles.stream().map(DriveFile::getSize).reduce(0L, Long::sum);
+
+        JsonObjectBuilder responseData = Json.createObjectBuilder()
+                .add("files", driveFiles)
+                .add("size", totalStorageSizeToJson(totalSize));
+
+        return responseData.build();
+    }
+
+    public JsonObject unlockFiles(String masterPassword) {
+        boolean gotPrivateKey = loggedInUserInfo.unlockFiles(masterPassword);
+
+        if (gotPrivateKey) {
+            return getAllFiles();
+        }
+
+        throw new WebApplicationException(Response.status(403).build());
+
+    }
+
     /*
         From a frontend app we send the request to download the file from this given @fileLink param
         The file is stored in server as encrypted so after we download the files from the @param fileLink
@@ -88,17 +122,6 @@ public class DriveService {
         }
     }
 
-    // @return all the files (with decrypted fileName) of the logged in user
-    public JsonArray getAllFiles() {
-        JsonArrayBuilder driveFiles = Json.createArrayBuilder();
-        this.driveResourceClient.getFiles(this.loggedInUserInfo.getUser().getId())
-                .stream()
-                .map(this::downloadAndDecryptFileName)
-                .forEach(driveFiles::add);
-
-        return driveFiles.build();
-    }
-
     public JsonObject upload(FileUploadForm uploadForm) throws IOException {
         File targetFile = new File(TO_UPLOAD_PATH + uploadForm.fileName);
 
@@ -112,90 +135,54 @@ public class DriveService {
                 targetFile.toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
 
-        File encryptedZipFile = encryptFile(targetFile);
-
-        JsonObject uploadedFilePath = doUpload(encryptedZipFile);
+        File encryptedZipFile = fileManager.encryptFile(targetFile, loggedInUserInfo.getUser());
+        byte[] streamBytes = new FileInputStream(encryptedZipFile).readAllBytes();
+        String uploadedUrl = googleCloudService.uploadToBucket(streamBytes);
         fileManager.resetToUploadFolder();
 
-        return uploadedFilePath;
-    }
-
-    private File encryptFile(File fileToEncrypt) throws IOException {
-        //master key save it in memory, to save time
-        File outputFolder = new File("sdrive-" + UUID.randomUUID().toString());
-        outputFolder.mkdir();
-
-        System.out.println(outputFolder.getAbsolutePath());
+        DriveFile driveFile = new DriveFile(uploadedUrl,
+                streamBytes.length,
+                loggedInUserInfo.getUser().getId());
 
         try {
-            cryptoService.encrypt(fileToEncrypt, outputFolder, loggedInUserInfo.getUser());
-            File encryptedZipFile = fileManager.toZipFile(outputFolder);
-            System.out.println("Local before: " + encryptedZipFile.getName());
+            Response response = driveResourceClient.create(driveFile);
+            var location = response.getLocation().toString();
+            var id = location.substring(location.lastIndexOf("/") + 1);
+//            driveFile.setId(id);
+            DriveFile uploadedFile = driveResourceClient.getFile(id);
+            System.out.println(uploadedFile);
 
-            fileManager.deleteFolder(outputFolder);
+            return downloadAndDecryptFileName(uploadedFile).build();
 
-            return encryptedZipFile;
-
-        } catch (NoSuchPaddingException | InvalidAlgorithmParameterException
-                | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException
-                | InvalidKeyException | InvalidKeySpecException e) {
+        } catch (WebApplicationException e) {
             e.printStackTrace();
-            throw new RuntimeException("something happened");
+            googleCloudService.deleteFile(driveFile.getLink());
+            throw e;
         }
     }
-
-    private JsonObject doUpload(File file) {
-        FileUploadForm driveFileUploadForm = new FileUploadForm();
-        try {
-            driveFileUploadForm.fileData = new ByteArrayInputStream(Files.readAllBytes(Path.of(file.getAbsolutePath())));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        DriveFile driveFile = this.driveResourceClient.upload(loggedInUserInfo.getUser().getId(), driveFileUploadForm);
-        loggedInUserInfo.getUser().getFiles().add(driveFile);
-        return downloadAndDecryptFileName(driveFile).build();
-    }
-
-    private DriveFile updateFile(String fileId, File file) {
-        FileUploadForm driveFile = new FileUploadForm();
-        try {
-            driveFile.fileData = new ByteArrayInputStream(Files.readAllBytes(Path.of(file.getAbsolutePath())));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return this.driveResourceClient.update(fileId, loggedInUserInfo.getUser().getId(), driveFile);
-    }
-
-    private JsonObjectBuilder downloadAndDecryptFileName(DriveFile driveFile) {
-        File downloadedFolder = fileManager.downloadZipAndExtractToFolder(driveFile.getLink());
-
-        String decryptedFileName;
-        try {
-            decryptedFileName = fileManager.decrypt(downloadedFolder, loggedInUserInfo.getUserPrivateKey(), true);
-        } catch (NoSuchPaddingException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
-            e.printStackTrace();
-            return Json.createObjectBuilder()
-                    .add("success", false)
-                    .add("message", "Not decrypted because there is given invalid key!");
-        } finally {
-            downloadedFolder.delete();
-        }
-
-        return Json.createObjectBuilder(driveFile.toJsonObject())
-                .add("fileName", decryptedFileName)
-                .add("readableSize", humanReadableByteCountBin(driveFile.getSize()))
-                .add("readableCreatedAt", Instant.ofEpochMilli(driveFile.getCreatedAt()).toString());
-    }
-
 
     public JsonObject deleteFile(String fileId) {
         JsonObject body = driveResourceClient.delete(fileId);
         if (body.getBoolean("deleted")) {
-            loggedInUserInfo.getUser().getFiles().removeIf(file -> file.getId().equals(fileId));
+            googleCloudService.deleteFile(body.getString("link"));
         }
         return body;
+    }
+
+    private DriveFile updateFile(DriveFile originalFile, File newFile) {
+        try {
+            byte[] newFileBytes = new ByteArrayInputStream(Files.readAllBytes(Path.of(newFile.getAbsolutePath()))).readAllBytes();
+            String uploadedUrl = googleCloudService.uploadToBucket(newFileBytes);
+            googleCloudService.deleteFile(originalFile.getLink());
+
+            originalFile.setSize(newFileBytes.length);
+            originalFile.setLink(uploadedUrl);
+
+            return this.driveResourceClient.update(originalFile.getId(), originalFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public MasterPasswordCryptoResults updateMasterPassword(String newMasterPassword, String oldMasterPassword) {
@@ -207,7 +194,7 @@ public class DriveService {
                 fileManager.updateFileKey(folder, loggedInUserInfo.getUser(), masterPasswordCryptoResults.getPublicKeyBase64(), oldMasterPassword);
                 File zipFile = fileManager.toZipFile(folder);
 
-                DriveFile updatedFile = updateFile(originalDriveFile.getId(), zipFile);
+                DriveFile updatedFile = updateFile(originalDriveFile, zipFile);
                 originalDriveFile.setLink(updatedFile.getLink());
                 originalDriveFile.setSize(updatedFile.getSize());
             }
@@ -220,7 +207,7 @@ public class DriveService {
         }
     }
 
-    public JsonObject shareFile(String fileId, String recipientUsername) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
+    public FileShare shareFile(String fileId, String recipientUsername) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
         DriveFile originalDriveFile = driveResourceClient.getFile(fileId);
         JsonObject userWithGivenFields = usersResourceClient.getUserWithGivenFields(null, recipientUsername, "userId,username,public_key");
 
@@ -228,14 +215,14 @@ public class DriveService {
         fileManager.addUserToConfigFile(downloadedFolder, userWithGivenFields.getString("userId"), loggedInUserInfo.getUserPrivateKey(), userWithGivenFields.getString("publicKey"));
 
         File toZipFile = fileManager.toZipFile(downloadedFolder);
-        DriveFile updatedFile = updateFile(originalDriveFile.getId(), toZipFile);
+        DriveFile updatedFile = updateFile(originalDriveFile, toZipFile);
 
         originalDriveFile.setLink(updatedFile.getLink());
         originalDriveFile.setSize(updatedFile.getSize());
 
-        ShareFileRequest metadata = new ShareFileRequest(originalDriveFile.getId(), userWithGivenFields.getString("username"));
+        FileShare fileShare = new FileShare(originalDriveFile.getId(), userWithGivenFields.getString("username"));
 
-        return driveResourceClient.shareFile(metadata);
+        return driveResourceClient.shareFile(fileShare);
     }
 
     public JsonArray getUserSharedFiles() {
@@ -266,7 +253,6 @@ public class DriveService {
             JsonObject fileJson = Json.createObjectBuilder(jsonObject.getJsonObject("file"))
                     .add("fileName", decryptedFileName)
                     .add("readableSize", humanReadableByteCountBin(jsonObject.getJsonObject("file").getInt("size")))
-                    .add("readableCreatedAt", Instant.ofEpochMilli(jsonObject.getJsonObject("file").getInt("createdAt")).toString())
                     .build();
 
             return Json.createObjectBuilder(jsonObject)
@@ -278,12 +264,36 @@ public class DriveService {
         }
     }
 
-    public JsonObject calculateTotalStorageSize() {
-        Long totalBytes = loggedInUserInfo.getUser().getFiles().stream().map(DriveFile::getSize).reduce(0L, Long::sum);
+    public JsonObject calculateTotalStorageSize(String userId) {
+        Long totalSize = this.driveResourceClient.getFiles(userId).stream().map(DriveFile::getSize).reduce(0L, Long::sum);
+        return totalStorageSizeToJson(totalSize);
+    }
+
+    public JsonObject totalStorageSizeToJson(long totalBytes) {
         return Json.createObjectBuilder()
                 .add("totalUsed", humanReadableByteCountBin(totalBytes))
                 .add("percentage", totalUsedPercentage(totalBytes))
                 .build();
+    }
+
+    private JsonObjectBuilder downloadAndDecryptFileName(DriveFile driveFile) {
+        File downloadedFolder = fileManager.downloadZipAndExtractToFolder(driveFile.getLink());
+
+        String decryptedFileName;
+        try {
+            decryptedFileName = fileManager.decrypt(downloadedFolder, loggedInUserInfo.getUserPrivateKey(), true);
+        } catch (NoSuchPaddingException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | IOException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
+            e.printStackTrace();
+            return Json.createObjectBuilder()
+                    .add("success", false)
+                    .add("message", "Not decrypted because there is given invalid key!");
+        } finally {
+            downloadedFolder.delete();
+        }
+
+        return Json.createObjectBuilder(Json.createReader(new StringReader(jsonb.toJson(driveFile))).readObject())
+                .add("fileName", decryptedFileName)
+                .add("readableSize", humanReadableByteCountBin(driveFile.getSize()));
     }
 
     private String humanReadableByteCountBin(long bytes) {
@@ -306,7 +316,10 @@ public class DriveService {
         int totalFreeSpace = 15;
         double usedSpace = (double) bytes / 1024 / 1024 / 1024;
 
-        return (usedSpace / totalFreeSpace) * 100;
+        double percentage = (usedSpace / totalFreeSpace) * 100;
+        System.out.println("percentage = " + percentage);
+        return percentage;
+//        return String.format(Locale.US, "%.2f", percentage);
     }
 
 

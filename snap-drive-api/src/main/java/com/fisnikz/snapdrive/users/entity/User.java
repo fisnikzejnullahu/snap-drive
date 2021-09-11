@@ -3,6 +3,7 @@ package com.fisnikz.snapdrive.users.entity;
 import com.fisnikz.snapdrive.drive.entity.DriveFile;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 
+import javax.json.bind.annotation.JsonbDateFormat;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +19,7 @@ public class User extends PanacheEntityBase {
     public String id;
 
     public String username;
+
     public String hashedPassword;
     public String passwordSalt;
     public int derivativeIterations;
@@ -31,9 +33,6 @@ public class User extends PanacheEntityBase {
     public String nonce;
     //    private int counter;
     public LocalDateTime registerAt;
-
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
-    public List<DriveFile> files;
 
     public User() {
     }

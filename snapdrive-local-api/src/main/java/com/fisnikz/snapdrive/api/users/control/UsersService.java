@@ -1,7 +1,10 @@
 package com.fisnikz.snapdrive.api.users.control;
 
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
-import com.fisnikz.snapdrive.api.users.entity.*;
+import com.fisnikz.snapdrive.api.users.entity.CreateUserRequest;
+import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
+import com.fisnikz.snapdrive.api.users.entity.User;
+import com.fisnikz.snapdrive.api.users.entity.UserLoginRequest;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.crypto.entity.MasterPasswordKeyInfo;
@@ -14,11 +17,14 @@ import javax.crypto.NoSuchPaddingException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.io.StringReader;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -135,32 +141,18 @@ public class UsersService {
                 .build();
     }
 
-    public JsonObject unlockFiles(String masterPassword) {
-        boolean gotPrivateKey = loggedInUserInfo.unlockFiles(masterPassword);
-        JsonObjectBuilder result = Json.createObjectBuilder()
-                .add("success", gotPrivateKey);
 
-        if (gotPrivateKey) {
-            result.add("username", loggedInUserInfo.getUser().getUsername());
-            result.add("registerAt", loggedInUserInfo.getUser().getRegisterAt().toString());
-            result.add("files", driveService.getAllFiles());
-            result.add("size", driveService.calculateTotalStorageSize());
-            return result.build();
-        }
 
-        throw new WebApplicationException(Response.status(403).entity(result).build());
-
-    }
-
-    public JsonObject login(UserLoginRequest loginRequest) {
-        User user = loggedInUserInfo.login(loginRequest.getUsername(), loginRequest.getPassword());
-
-        JsonObjectBuilder userJsonObject = Json.createObjectBuilder();
-
-        userJsonObject.add("username", user.getUsername());
-        userJsonObject.add("registerAt", user.getRegisterAt().toString());
-
-        return userJsonObject.build();
+    public User login(UserLoginRequest loginRequest) {
+        return loggedInUserInfo.login(loginRequest.getUsername(), loginRequest.getPassword());
+//        User user = loggedInUserInfo.login(loginRequest.getUsername(), loginRequest.getPassword());
+//
+//        JsonObjectBuilder userJsonObject = Json.createObjectBuilder();
+//
+//        userJsonObject.add("username", user.getUsername());
+//        userJsonObject.add("registerAt", user.getRegisterAt().toString());
+//
+//        return userJsonObject.build();
     }
 
     public void logout() {

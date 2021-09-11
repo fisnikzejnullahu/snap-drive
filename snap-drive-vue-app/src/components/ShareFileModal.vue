@@ -6,7 +6,7 @@
         {{ apiMessage }}
       </p>
       <div class="form-group">
-        <label :for="toUserId"
+        <label :for="recipientUsername"
           >Username of user you want to share file with</label
         >
         <input
@@ -14,7 +14,7 @@
           class="form-control"
           aria-describedby="hint"
           placeholder="Username"
-          v-model.trim="toUserId"
+          v-model.trim="recipientUsername"
         />
         <small id="hint" class="form-text text-muted"
           >Recipient will never know your master password. He will use his own
@@ -66,6 +66,8 @@ export default {
     },
     hideModal() {
       this.clickedShare = false;
+      this.recipientUsername = "";
+      this.apiMessage = "";
       this.$bvModal.hide("bv-modal-example");
     },
     onStartShare() {

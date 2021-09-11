@@ -5,20 +5,15 @@ import com.fisnikz.snapdrive.drive.control.DriveService;
 import com.fisnikz.snapdrive.drive.entity.ShareFileRequest;
 import com.fisnikz.snapdrive.logging.Logged;
 import com.fisnikz.snapdrive.drive.entity.DriveFile;
-import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.ws.rs.*;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.net.URI;
 
 /**
  * @author Fisnik Zejnullahu
@@ -32,72 +27,45 @@ public class DriveResource {
     @Inject
     DriveService driveService;
 
+    @GET
+    public JsonArray getFiles(@QueryParam("userId") String userId) {
+        return driveService.getFilesOfUser(userId);
+    }
+
     @POST
-    @Path("upload")
-    @Consumes({MediaType.MULTIPART_FORM_DATA})
-    public void upload(@Suspended AsyncResponse response,
-                       @QueryParam("userId") String userId,
-                       @MultipartForm FileUploadForm form) {
-
-        CompletableFuture.supplyAsync(() -> {
-
-            try {
-                return driveService.upload(userId, form.fileData);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return e;
-            }
-        }).thenAccept(response::resume);
+    public Response create(DriveFile driveFile) {
+        String id = driveService.create(driveFile);
+        return Response.created(URI.create("/drive/" + id)).build();
     }
 
     @PUT
     @Path("{fileId}")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public DriveFile update(@MultipartForm FileUploadForm form,
-                            @PathParam("fileId") String fileId,
-                            @QueryParam("userId") String userId) {
-        try {
-            return driveService.updateFile(userId, fileId, form.fileData);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+    public DriveFile update(@PathParam("fileId") String fileId, DriveFile driveFile) {
+        return driveService.update(fileId, driveFile);
     }
 
     @GET
     @Path("{id}")
-    public DriveFile getFile(@PathParam("id") String fileId) {
-        return driveService.getFileByIdOrThrow404(fileId);
+    public JsonObject getFile(@PathParam("id") String fileId) {
+        return driveService.getFile(fileId);
     }
 
     @DELETE
     @Path("{fileId}")
     public JsonObject delete(@PathParam("fileId") String fileId) {
-        boolean deleteFileFromStorage = driveService.deleteFile(fileId);
+        return driveService.deleteFile(fileId);
 
-        return Json.createObjectBuilder()
-                .add("id", fileId)
-                .add("deleted", deleteFileFromStorage)
-                .build();
-    }
 
-    @GET
-    public List<DriveFile> allUserFiles(@QueryParam("userId") String userId) {
-        return driveService.getAllFilesOfUser(userId);
     }
 
     @POST
     @Path("file-shares")
     public Response shareFile(ShareFileRequest shareFileRequest) {
         try {
-            driveService.shareFile(shareFileRequest);
-            JsonObject responseData = Json.createObjectBuilder()
-                    .add("shared", true)
-                    .build();
-
+            JsonObject responseData = driveService.shareFile(shareFileRequest);
             return Response.ok(responseData).build();
         }catch (Exception e) {
+            e.printStackTrace();
             return ResponseWithJsonBodyBuilder.withInternalError();
         }
     }

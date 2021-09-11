@@ -2,6 +2,7 @@ package com.fisnikz.snapdrive.api.users.boundary;
 
 import com.fisnikz.snapdrive.api.users.control.UsersService;
 import com.fisnikz.snapdrive.api.users.entity.CreateUserRequest;
+import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.api.users.entity.UserLoginRequest;
 import com.fisnikz.snapdrive.logging.Logged;
 
@@ -54,14 +55,8 @@ public class UsersResource {
 
     @POST
     @Path("login")
-    public JsonObject login(UserLoginRequest loginRequest) {
+    public User login(UserLoginRequest loginRequest) {
         return usersService.login(loginRequest);
-    }
-
-    @POST
-    @Path("unlock")
-    public JsonObject unlockFiles(JsonObject masterPasswordObj) {
-        return usersService.unlockFiles(masterPasswordObj.getString("masterPassword"));
     }
 
     @POST

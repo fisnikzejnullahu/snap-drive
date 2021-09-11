@@ -1,8 +1,8 @@
 package com.fisnikz.snapdrive.api.drive.control;
 
 import com.fisnikz.snapdrive.api.MyResponseExceptionMapper;
+import com.fisnikz.snapdrive.api.drive.entity.FileShare;
 import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
-import com.fisnikz.snapdrive.api.drive.entity.ShareFileRequest;
 import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
@@ -33,9 +33,8 @@ public interface DriveResourceClient {
     DriveFile upload(@QueryParam("userId") String userId, @MultipartForm FileUploadForm data);
 
     @PUT
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Path("{fileId}")
-    DriveFile update(@PathParam("fileId") String fileId, @QueryParam("userId") String userId, @MultipartForm FileUploadForm data);
+    DriveFile update(@PathParam("fileId") String fileId, DriveFile driveFile);
 
     @GET
     List<DriveFile> getFiles(@QueryParam("userId") String userId);
@@ -50,7 +49,7 @@ public interface DriveResourceClient {
 
     @POST
     @Path("file-shares")
-    JsonObject shareFile(ShareFileRequest shareFileRequest);
+    FileShare shareFile(FileShare shareFileRequest);
 
     @GET
     @Path("file-shares")
@@ -60,4 +59,6 @@ public interface DriveResourceClient {
     @Path("file-shares")
     Response deleteFileShare(@QueryParam("userId") String userId);
 
+    @POST
+    Response create(DriveFile driveFile);
 }

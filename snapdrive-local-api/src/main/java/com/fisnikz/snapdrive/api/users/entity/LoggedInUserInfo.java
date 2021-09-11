@@ -70,6 +70,7 @@ public class LoggedInUserInfo {
     public boolean unlockFiles(String masterPassword) {
         if (this.isLoggedIn()) {
             System.out.println(this.user.getId());
+            System.out.println(this.user.getPrivateKey());
             try {
                 decryptedPrivateKey(masterPassword, user.getDerivativeSalt(), user.getNonce(), user.getPrivateKey());
                 return true;

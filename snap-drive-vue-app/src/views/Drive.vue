@@ -73,15 +73,17 @@
         </p>
         <DriveFile
           :sharedFile="true"
-          v-for="file in sharedFiles"
-          :key="file.link"
-          :file="file"
-          @open-modal="openModal(file)"
+          v-for="sharedFile in sharedFiles"
+          :key="sharedFile.id"
+          :file="sharedFile.file"
+          :sharedAt="sharedFile.sharedAt"
+          :sharedBy="sharedFile.sharedBy"
+          @open-modal="openFileInfoModal(sharedFile.file, ...arguments)"
         />
         <DriveFileInformation
           :sharedFile="true"
           :file="selectedFile"
-          ref="modal"
+          ref="fileInformationModal"
           @delete-file="onDeleteFile(selectedFile.id)"
         />
       </div>
@@ -97,6 +99,7 @@
           @open-modal="openFileInfoModal(file)"
         />
         <DriveFileInformation
+          :sharedFile="false"
           :file="selectedFile"
           ref="fileInformationModal"
           @delete-file="onDeleteFile(selectedFile.id)"
@@ -194,36 +197,48 @@ export default {
     async onStartShareFileClick(fileId, recipientUsername) {
       console.log("SHARING...");
       console.log(recipientUsername);
-      let fileIndex = this.driveFiles.findIndex((file) => file.id === fileId);
-      let file = this.driveFiles[fileIndex];
       let response = await fetch(
-        `${this.apiUrl}/file-shares?recipientUsername=${recipientUsername}`,
+        `${this.apiUrl}/${fileId}/file-shares?recipientUsername=${recipientUsername}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          // body: JSON.stringify(file),
         }
       );
 
       console.log(response.status);
       if (response.status === 200) {
+        let body = await response.json();
+        if (!this.selectedFile.shares) {
+          this.selectedFile.shares = [];
+        }
+        this.selectedFile.shares.push({
+          recipientUsername: body.recipientUsername,
+          sharedAt: body.sharedAt,
+        });
+
+        console.log(this.selectedFile.shares);
+        this.$refs.shareFileModal.hideModal();
         this.makeToast("Success", "File shared successfully", "success");
       } else {
         let body = await response.json();
         console.log(body);
         this.$refs.shareFileModal.showErrorMessage(body.message);
       }
-      this.$refs.shareFileModal.hideModal();
     },
     async fetchSharedDrive() {
       let response = await fetch(`${this.apiUrl}/file-shares`);
       this.sharedFiles = await response.json();
+      console.log(this.sharedFiles);
       this.loaded = true;
     },
-    openFileInfoModal(file) {
+    openFileInfoModal(file, sharedAt, sharedBy) {
+      console.log(sharedAt);
+      console.log(sharedBy);
       this.selectedFile = file;
+      this.selectedFile["sharedAt"] = sharedAt;
+      this.selectedFile["sharedBy"] = sharedBy;
       this.$refs.fileInformationModal.show();
     },
     makeToast(title, message, variant) {
@@ -238,8 +253,6 @@ export default {
   computed: {
     ...mapGetters(["currentUser", "driveSize", "driveFiles"]),
     filteredList() {
-      console.log(this.driveSize);
-      console.log(this.driveFiles);
       if (this.searchQuery.length !== 0) {
         return this.driveFiles.filter((file) => {
           return file.fileName

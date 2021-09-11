@@ -197,7 +197,7 @@ export default {
         body: createUserRequest,
       });
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         this.apiMessage =
           "Account created successfully. You will now be redirected to login page!";
         this.success = true;

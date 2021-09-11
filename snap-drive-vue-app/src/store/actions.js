@@ -25,7 +25,7 @@ export const login = async ({ commit }, userInfo) => {
 
 export const unlock = async ({ commit }, masterPassword) => {
   console.log("ACTIONS: LOGIN");
-  let response = await fetch(`${apiUrl}/users/unlock`, {
+  let response = await fetch(`${apiUrl}/drive/unlock`, {
     method: "POST",
     headers: {
       "content-type": "application/json",

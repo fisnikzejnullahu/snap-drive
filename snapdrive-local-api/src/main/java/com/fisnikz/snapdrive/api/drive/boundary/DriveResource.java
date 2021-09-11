@@ -2,6 +2,7 @@ package com.fisnikz.snapdrive.api.drive.boundary;
 
 import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
+import com.fisnikz.snapdrive.api.drive.entity.FileShare;
 import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
 import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
 import com.fisnikz.snapdrive.logging.Logged;
@@ -39,8 +40,14 @@ public class DriveResource {
     @Inject
     LoggedInUserInfo loggedInUserInfo;
 
+    @POST
+    @Path("unlock")
+    public JsonObject unlockFiles(JsonObject masterPasswordObj) {
+        return driveService.unlockFiles(masterPasswordObj.getString("masterPassword"));
+    }
+
     @GET
-    public JsonArray getFiles() {
+    public JsonObject getFiles() {
         return driveService.getAllFiles();
     }
 
@@ -49,7 +56,6 @@ public class DriveResource {
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces(MediaType.APPLICATION_JSON)
     public JsonObject upload(@MultipartForm FileUploadForm form) throws IOException {
-        System.out.println("form = " + form.fileName);
         return driveService.upload(form);
     }
 
@@ -77,7 +83,7 @@ public class DriveResource {
     @GET
     @Path("size")
     public JsonObject sizeInCloud() {
-        return driveService.calculateTotalStorageSize();
+        return driveService.calculateTotalStorageSize(loggedInUserInfo.getUser().getId());
     }
 
     @POST
@@ -90,7 +96,7 @@ public class DriveResource {
         }
 
         try {
-            JsonObject data = driveService.shareFile(fileId, recipientUsername);
+            FileShare data = driveService.shareFile(fileId, recipientUsername);
             return Response.ok(data).build();
         } catch (NoSuchPaddingException e) {
             e.printStackTrace();

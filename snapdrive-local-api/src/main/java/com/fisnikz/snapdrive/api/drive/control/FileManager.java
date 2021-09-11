@@ -28,6 +28,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -48,9 +49,30 @@ public class FileManager {
 
     @Inject
     CryptoService cryptoService;
-    @Inject
-    @RestClient
-    UsersResourceClient usersResourceClient;
+
+    File encryptFile(File fileToEncrypt, User user) throws IOException {
+        //master key save it in memory, to save time
+        File outputFolder = new File("sdrive-" + UUID.randomUUID().toString());
+        outputFolder.mkdir();
+
+        System.out.println(outputFolder.getAbsolutePath());
+
+        try {
+            cryptoService.encrypt(fileToEncrypt, outputFolder, user);
+            File encryptedZipFile = toZipFile(outputFolder);
+            System.out.println("Local before: " + encryptedZipFile.getName());
+
+            deleteFolder(outputFolder);
+
+            return encryptedZipFile;
+
+        } catch (NoSuchPaddingException | InvalidAlgorithmParameterException
+                | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException
+                | InvalidKeyException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            throw new RuntimeException("something happened");
+        }
+    }
 
     File toZipFile(File folder) throws IOException {
         File zipFile = new File(TO_UPLOAD_PATH + folder.getName() + ".zip");

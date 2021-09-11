@@ -1,6 +1,6 @@
-package com.fisnikz.snapdrive.drive.control;
+package com.fisnikz.snapdrive.api.drive.control;
 
-import com.fisnikz.snapdrive.drive.entity.DriveFile;
+import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
 import com.fisnikz.snapdrive.logging.Logged;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.*;
@@ -37,24 +37,18 @@ public class GoogleCloudService {
                         FileInputStream(CREDENTIALS_FILE_PATH))).build();
     }
 
-    public DriveFile uploadToBucket(InputStream fileBytes, long createdAt) throws IOException {
+    public String uploadToBucket(byte[] fileBytes) throws IOException {
         Storage storage = storageOptions.getService();
 
         String fileName = UUID.randomUUID().toString() + ".zip";
         BlobId blobId = BlobId.of(STORAGE_BUCKET, fileName);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
-        byte[] streamBytes = fileBytes.readAllBytes();
-        System.out.println("UPLOADING...");
-
-        storage.create(blobInfo, streamBytes);
+        storage.create(blobInfo, fileBytes);
         //make public url
         storage.createAcl(blobId, Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER));
 
-        DriveFile driveFile = new DriveFile(UUID.randomUUID().toString(), "https://storage.googleapis.com/" + blobId.getBucket() + "/" + fileName,
-                streamBytes.length, createdAt);
-
-        return driveFile;
+        return "https://storage.googleapis.com/" + blobId.getBucket() + "/" + fileName;
     }
 
     public boolean deleteFile(String fileLink) {

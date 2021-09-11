@@ -76,25 +76,6 @@
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy-multipart</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-multipart-provider</artifactId>
-    </dependency>
-
-
-
-    <!-- https://mvnrepository.com/artifact/com.google.api-client/google-api-client -->
-    <dependency>
-      <groupId>com.google.firebase</groupId>
-      <artifactId>firebase-admin</artifactId>
-      <version>8.0.1</version>
-    </dependency>
-
-
   </dependencies>
   <build>
     <plugins>
