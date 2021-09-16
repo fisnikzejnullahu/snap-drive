@@ -1,12 +1,10 @@
 package com.fisnikz.snapdrive.users.entity;
 
-import com.fisnikz.snapdrive.drive.entity.DriveFile;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 
-import javax.json.bind.annotation.JsonbDateFormat;
+import javax.json.bind.annotation.JsonbTransient;
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,44 +16,31 @@ public class User extends PanacheEntityBase {
     @Id
     public String id;
 
-    public String username;
+    @Column(unique = true)
+    public String email;
 
-    public String hashedPassword;
-    public String passwordSalt;
-    public int derivativeIterations;
-    public String derivativeSalt;
+    public String googleId;
 
     @Column(columnDefinition = "TEXT")
     public String privateKey;
 
     @Column(columnDefinition = "TEXT")
     public String publicKey;
+
+    public String derivativeSalt;
+
+    public int derivativeIterations;
+
     public String nonce;
-    //    private int counter;
     public LocalDateTime registerAt;
 
     public User() {
     }
 
-    public User(String username, String hashedPassword, String passwordSalt, int derivativeIterations, String derivativeSalt, String privateKey, String publicKey, String nonce) {
+    public User(String googleId, String email) {
         this.id = UUID.randomUUID().toString();
-        this.username = username;
-        this.hashedPassword = hashedPassword;
-        this.passwordSalt = passwordSalt;
-        this.derivativeIterations = derivativeIterations;
-        this.derivativeSalt = derivativeSalt;
-        this.privateKey = privateKey;
-        this.publicKey = publicKey;
-        this.nonce = nonce;
         this.registerAt = LocalDateTime.now();
-//        this.counter = counter;
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id='" + id + '\'' +
-                ", username='" + username + '\'' +
-                '}';
+        this.googleId = googleId;
+        this.email = email;
     }
 }

@@ -50,7 +50,7 @@
         </form>
         <button
           type="button"
-          class="btn btn-info btn-block"
+          class="btn btn-info btn-block rounded"
           id="file-browser"
           :disabled="uploading"
           @click="$refs.file.click()"
@@ -74,17 +74,16 @@
         <DriveFile
           :sharedFile="true"
           v-for="sharedFile in sharedFiles"
-          :key="sharedFile.id"
-          :file="sharedFile.file"
-          :sharedAt="sharedFile.sharedAt"
+          :key="sharedFile.googleDriveId"
+          :file="sharedFile"
           :sharedBy="sharedFile.sharedBy"
-          @open-modal="openFileInfoModal(sharedFile.file, ...arguments)"
+          @open-modal="openFileInfoModal(sharedFile)"
         />
-        <DriveFileInformation
+        <DriveFileInformationOld
           :sharedFile="true"
           :file="selectedFile"
           ref="fileInformationModal"
-          @delete-file="onDeleteFile(selectedFile.id)"
+          @delete-file="onDeleteFile(selectedFile.googleDriveId)"
         />
       </div>
       <div v-else class="mt-4 row">
@@ -98,17 +97,17 @@
           :file="file"
           @open-modal="openFileInfoModal(file)"
         />
-        <DriveFileInformation
+        <DriveFileInformationOld
           :sharedFile="false"
           :file="selectedFile"
           ref="fileInformationModal"
-          @delete-file="onDeleteFile(selectedFile.id)"
-          @on-share-file="onShareFileOpen(selectedFile.id)"
+          @delete-file="onDeleteFile(selectedFile.googleDriveId)"
+          @on-share-file="onShareFileOpen(selectedFile.googleDriveId)"
         />
         <ShareFileModal
           ref="shareFileModal"
           @on-start-share-file="
-            onStartShareFileClick(selectedFile.id, ...arguments)
+            onStartShareFileClick(selectedFile.googleDriveId, ...arguments)
           "
         />
       </div>
@@ -119,7 +118,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import DriveFile from "../components/DriveFile.vue";
-import DriveFileInformation from "../components/DriveFileInformation.vue";
+import DriveFileInformationOld from "../components/DriveFileInformationOld.vue";
 import LoadingScreen from "../components/LoadingScreen.vue";
 import ShareFileModal from "../components/ShareFileModal.vue";
 
@@ -127,7 +126,7 @@ export default {
   name: "Drive",
   components: {
     DriveFile,
-    DriveFileInformation,
+    DriveFileInformationOld,
     LoadingScreen,
     ShareFileModal,
   },
@@ -148,7 +147,7 @@ export default {
   mounted() {
     if (this.sharedOnlyDrive) {
       console.log("yep");
-      this.fetchSharedDrive();
+      this.fetchSharedWithMe();
     }
   },
   methods: {
@@ -164,6 +163,7 @@ export default {
 
       this.uploadingFile = { fileName: this.filelist[0].name };
       this.uploading = true;
+      console.log(this.filelist[0]);
 
       let response = await this.uploadFile(formData);
 
@@ -173,7 +173,7 @@ export default {
         return;
       }
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         this.getDriveSize();
         this.makeToast("Success", "File uploaded", "success");
       } else {
@@ -184,7 +184,7 @@ export default {
     },
     async onDeleteFile(fileId) {
       let response = await this.deleteFile(fileId);
-      if (response.status === 200) {
+      if (response.status === 204) {
         this.$refs.fileInformationModal.hide();
         this.getDriveSize();
         this.makeToast("Success", "File deleted", "success");
@@ -194,11 +194,11 @@ export default {
       console.log(fileId);
       this.$refs.shareFileModal.showModal();
     },
-    async onStartShareFileClick(fileId, recipientUsername) {
+    async onStartShareFileClick(fileId, recipientEmail) {
       console.log("SHARING...");
-      console.log(recipientUsername);
+      console.log(recipientEmail);
       let response = await fetch(
-        `${this.apiUrl}/${fileId}/file-shares?recipientUsername=${recipientUsername}`,
+        `${this.apiUrl}/${fileId}/file-shares?recipientEmail=${recipientEmail}`,
         {
           method: "POST",
           headers: {
@@ -210,12 +210,9 @@ export default {
       console.log(response.status);
       if (response.status === 200) {
         let body = await response.json();
-        if (!this.selectedFile.shares) {
-          this.selectedFile.shares = [];
-        }
-        this.selectedFile.shares.push({
-          recipientUsername: body.recipientUsername,
-          sharedAt: body.sharedAt,
+        this.selectedFile.permissions.push({
+          emailAddress: body.emailAddress,
+          role: body.role,
         });
 
         console.log(this.selectedFile.shares);
@@ -227,18 +224,16 @@ export default {
         this.$refs.shareFileModal.showErrorMessage(body.message);
       }
     },
-    async fetchSharedDrive() {
-      let response = await fetch(`${this.apiUrl}/file-shares`);
-      this.sharedFiles = await response.json();
+    async fetchSharedWithMe() {
+      let response = await fetch(`${this.apiUrl}?sharedWithMeOnly`);
+      let body = await response.json();
+      this.sharedFiles = body.files;
       console.log(this.sharedFiles);
       this.loaded = true;
     },
-    openFileInfoModal(file, sharedAt, sharedBy) {
-      console.log(sharedAt);
-      console.log(sharedBy);
+    openFileInfoModal(file) {
+      console.log("OPENNING..................");
       this.selectedFile = file;
-      this.selectedFile["sharedAt"] = sharedAt;
-      this.selectedFile["sharedBy"] = sharedBy;
       this.$refs.fileInformationModal.show();
     },
     makeToast(title, message, variant) {
@@ -253,7 +248,7 @@ export default {
   computed: {
     ...mapGetters(["currentUser", "driveSize", "driveFiles"]),
     filteredList() {
-      if (this.searchQuery.length !== 0) {
+      if (this.driveFiles.length !== 0 && this.searchQuery.length !== 0) {
         return this.driveFiles.filter((file) => {
           return file.fileName
             .toLowerCase()

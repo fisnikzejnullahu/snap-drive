@@ -1,10 +1,10 @@
 package com.fisnikz.snapdrive.api.users.control;
 
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
-import com.fisnikz.snapdrive.api.users.entity.CreateUserRequest;
+import com.fisnikz.snapdrive.api.users.entity.CreateUserMasterPasswordRequest;
 import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
+import com.fisnikz.snapdrive.api.users.entity.SignInWithGoogleResponse;
 import com.fisnikz.snapdrive.api.users.entity.User;
-import com.fisnikz.snapdrive.api.users.entity.UserLoginRequest;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.crypto.entity.MasterPasswordKeyInfo;
@@ -17,14 +17,11 @@ import javax.crypto.NoSuchPaddingException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.Json;
-import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.io.StringReader;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -51,25 +48,38 @@ public class UsersService {
     @Inject
     DriveService driveService;
 
-    public Response create(CreateUserRequest createUserRequest) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IOException,
+    @Inject
+    GoogleAuthService googleAuthService;
+
+    public Response signInWithGoogle(String authorizationCode) {
+        SignInWithGoogleResponse signInWithGoogleResponse = googleAuthService.signInWithGoogle(authorizationCode);
+        Response response = usersResourceClient.signInWithGoogle(signInWithGoogleResponse);
+        User user = response.readEntity(User.class);
+        System.out.println(JsonbBuilder.create().toJson(user));
+        loggedInUserInfo.setUser(user);
+
+        return Response.status(response.getStatus()).entity(user).build();
+    }
+
+    public User createMasterPassword(String userId, String plainMasterPassword) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IOException,
             BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, WebApplicationException {
-        MasterPasswordCryptoResults masterPasswordCryptoResults = cryptoService.doCryptoToMasterPassword(createUserRequest.getMasterPassword());
+        MasterPasswordCryptoResults masterPasswordCryptoResults = cryptoService.doCryptoToMasterPassword(plainMasterPassword);
 
-        CreateUserRequest request = new CreateUserRequest(createUserRequest.getUsername(), createUserRequest.getPassword(), masterPasswordCryptoResults.getPrivateKeyBase64(),
-                masterPasswordCryptoResults.getPublicKeyBase64(), masterPasswordCryptoResults.getNonceBase64(),
-                masterPasswordCryptoResults.getPbkdf2Iterations(), masterPasswordCryptoResults.getPbkdf2Salt());
+        CreateUserMasterPasswordRequest createUserMasterPasswordRequest = new CreateUserMasterPasswordRequest();
+        //dont send to server master key
+        createUserMasterPasswordRequest.setPrivateKey(masterPasswordCryptoResults.getPrivateKeyBase64());
+        createUserMasterPasswordRequest.setPublicKey(masterPasswordCryptoResults.getPublicKeyBase64());
+        createUserMasterPasswordRequest.setDerivativeSalt(masterPasswordCryptoResults.getPbkdf2Salt());
+        createUserMasterPasswordRequest.setDerivativeIterations(masterPasswordCryptoResults.getPbkdf2Iterations());
+        createUserMasterPasswordRequest.setNonce(masterPasswordCryptoResults.getNonceBase64());
 
 
-        return usersResourceClient.create(request);
+        return usersResourceClient.createMasterPassword(userId, createUserMasterPasswordRequest);
     }
 
     public Response updateProfile(String newUsername) {
-        loggedInUserInfo.getUser().setUsername(newUsername);
+        loggedInUserInfo.getUser().setEmail(newUsername);
         return usersResourceClient.updateUser(loggedInUserInfo.getUser().getId(), loggedInUserInfo.getUser());
-    }
-
-    public Response updatePassword(JsonObject newUsernameData) {
-        return usersResourceClient.updateUserPassword(loggedInUserInfo.getUser().getId(), newUsernameData);
     }
 
     public Response updateMasterPassword(String newMasterPassword, String oldMasterPassword) {
@@ -139,20 +149,6 @@ public class UsersService {
                 .add("message", message)
                 .add("status", status)
                 .build();
-    }
-
-
-
-    public User login(UserLoginRequest loginRequest) {
-        return loggedInUserInfo.login(loginRequest.getUsername(), loginRequest.getPassword());
-//        User user = loggedInUserInfo.login(loginRequest.getUsername(), loginRequest.getPassword());
-//
-//        JsonObjectBuilder userJsonObject = Json.createObjectBuilder();
-//
-//        userJsonObject.add("username", user.getUsername());
-//        userJsonObject.add("registerAt", user.getRegisterAt().toString());
-//
-//        return userJsonObject.build();
     }
 
     public void logout() {

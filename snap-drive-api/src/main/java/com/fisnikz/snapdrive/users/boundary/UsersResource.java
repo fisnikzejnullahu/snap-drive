@@ -3,7 +3,8 @@ package com.fisnikz.snapdrive.users.boundary;
 import com.fisnikz.snapdrive.ResponseWithJsonBodyBuilder;
 import com.fisnikz.snapdrive.logging.Logged;
 import com.fisnikz.snapdrive.users.control.UsersService;
-import com.fisnikz.snapdrive.users.entity.CreateUserRequest;
+import com.fisnikz.snapdrive.users.entity.CreateUserMasterPasswordRequest;
+import com.fisnikz.snapdrive.users.entity.SignInWithGoogleRequest;
 import com.fisnikz.snapdrive.users.entity.User;
 import com.fisnikz.snapdrive.users.entity.UserLoginRequest;
 
@@ -13,7 +14,6 @@ import javax.json.JsonObject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 
 /**
  * @author Fisnik Zejnullahu
@@ -28,53 +28,32 @@ public class UsersResource {
     UsersService usersService;
 
     @POST
-    public Response create(CreateUserRequest createUserRequest) {
-        String userId = usersService.create(createUserRequest);
-        return Response.created(URI.create("/users/" + userId)).build();
+    @Path("signin")
+    public Response signInWithGoogle(SignInWithGoogleRequest signInWithGoogleRequest) {
+        return usersService.signInWithGoogle(signInWithGoogleRequest);
+    }
+
+    @POST
+    @Path("{id}/master-password")
+    public User createUserMasterPassword(@PathParam("id") String userId, CreateUserMasterPasswordRequest createUserMasterPasswordRequest) {
+        return usersService.createMasterPassword(userId, createUserMasterPasswordRequest);
     }
 
     @PUT
     @Path("{id}")
-    public JsonObject updateUser(@PathParam("id") String userId, User user) {
-        return Json.createObjectBuilder().add("updated", usersService.updateUser(userId, user)).build();
-    }
-
-    @PUT
-    @Path("{id}/password")
-    public Response updateUserPassword(@PathParam("id") String userId, JsonObject data) {
-        return usersService.updatePassword(userId, data.getString("newPassword"));
-    }
-
-
-    @POST
-    @Path("login")
-    public User login(UserLoginRequest loginRequest) {
-        return usersService.login(loginRequest);
+    public Response updateUser(@PathParam("id") String userId, User user) {
+        usersService.updateUser(userId, user);
+        return Response.noContent().build();
     }
 
     @GET
-    public JsonObject getUserWithGivenFields(@QueryParam("id") String id,
-                                             @QueryParam("username") String username,
+    public JsonObject getUserWithGivenFields(@QueryParam("email") String userEmail,
                                              @QueryParam("fields") String fields) {
 
-        // if no username and id are given then return bad response
-        // if there is username then find user based on username
-        // if there is id then find user based on id
-        if ((username == null || username.trim().isEmpty())
-                &&
-            (id == null || id.trim().isEmpty())) {
-            System.out.println("1");
-            throw new WebApplicationException(ResponseWithJsonBodyBuilder.withInformation(400, "Please provide user's ID or Username"));
+        if (userEmail != null || !userEmail.trim().isEmpty()) {
+            return usersService.getUserWithGivenFields(userEmail, fields);
         }
 
-        if (username != null || !username.trim().isEmpty()) {
-            System.out.println("2");
-            User user = usersService.getUserByUsernameOrThrow404(username);
-            return usersService.getUserWithGivenFields(user, fields);
-        }
-
-        User user = usersService.getUserByIdOrThrow404(id);
-            System.out.println("3");
-        return usersService.getUserWithGivenFields(user, fields);
+        throw new WebApplicationException(ResponseWithJsonBodyBuilder.withInformation(400, "Please provide user's Email"));
     }
 }

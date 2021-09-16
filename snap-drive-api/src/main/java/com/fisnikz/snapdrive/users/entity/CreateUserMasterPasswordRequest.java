@@ -3,34 +3,13 @@ package com.fisnikz.snapdrive.users.entity;
 /**
  * @author Fisnik Zejnullahu
  */
-public class CreateUserRequest {
+public class CreateUserMasterPasswordRequest {
 
-    private String username;
-    private String password;
     private String privateKey;
     private String publicKey;
     private String nonce;
     private int derivativeIterations;
     private String derivativeSalt;
-
-    public CreateUserRequest() {
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
     public String getPrivateKey() {
         return privateKey;
@@ -39,6 +18,7 @@ public class CreateUserRequest {
     public void setPrivateKey(String privateKey) {
         this.privateKey = privateKey;
     }
+
 
     public String getPublicKey() {
         return publicKey;
@@ -56,6 +36,14 @@ public class CreateUserRequest {
         this.nonce = nonce;
     }
 
+    public int getDerivativeIterations() {
+        return derivativeIterations;
+    }
+
+    public void setDerivativeIterations(int derivativeIterations) {
+        this.derivativeIterations = derivativeIterations;
+    }
+
     public String getDerivativeSalt() {
         return derivativeSalt;
     }
@@ -64,11 +52,4 @@ public class CreateUserRequest {
         this.derivativeSalt = derivativeSalt;
     }
 
-    public int getDerivativeIterations() {
-        return derivativeIterations;
-    }
-
-    public void setDerivativeIterations(int derivativeIterations) {
-        this.derivativeIterations = derivativeIterations;
-    }
 }

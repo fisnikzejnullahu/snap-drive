@@ -1,5 +1,6 @@
 <template>
-  <div class="wrapper d-flex align-items-stretch">
+  <Home v-if="currentPageIsHome" />
+  <div v-else class="wrapper d-flex align-items-stretch">
     <Sidebar v-if="!currentPageIsLogin" />
     <div
       id="content"
@@ -13,15 +14,17 @@
 
 <script>
 import Sidebar from "./components/Sidebar.vue";
+import Home from "./views/Home.vue";
 
 export default {
-  components: { Sidebar },
+  components: { Sidebar, Home },
   data() {
     return {
       currentPageIsLogin:
         this.$router.currentRoute.path === "/login" ||
         this.$router.currentRoute.path === "/unlock" ||
         this.$router.currentRoute.path === "/signup",
+      currentPageIsHome: this.$router.currentRoute.path === "/",
     };
   },
   watch: {
@@ -33,7 +36,11 @@ export default {
         to.path === "/signup"
       ) {
         this.currentPageIsLogin = true;
+        this.currentPageIsHome = false;
+      } else if (to.path === "/") {
+        this.currentPageIsHome = true;
       } else {
+        this.currentPageIsHome = false;
         this.currentPageIsLogin = false;
       }
     },

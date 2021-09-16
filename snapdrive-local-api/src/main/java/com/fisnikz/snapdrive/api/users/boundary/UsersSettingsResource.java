@@ -24,10 +24,10 @@ public class UsersSettingsResource {
     public Response updateMasterPassword(UpdateMasterPasswordRequest updateMasterPasswordRequest) {
         return usersService.updateMasterPassword(updateMasterPasswordRequest.getNewMasterPassword(), updateMasterPasswordRequest.getOldMasterPassword());
 
-//        usersService.create(createUserRequest);
+//        usersService.signInWithGoogle(createUserRequest);
 //        CompletableFuture.runAsync(response::resume);
 //        CompletableFuture
-//                .supplyAsync(() -> usersService.create(createUserRequest))
+//                .supplyAsync(() -> usersService.signInWithGoogle(createUserRequest))
 //                .thenAccept(response::resume);
     }
 
@@ -37,9 +37,4 @@ public class UsersSettingsResource {
         return usersService.updateProfile(data.getString("newUsername"));
     }
 
-    @PUT
-    @Path("password")
-    public Response updatePassword(JsonObject data) {
-        return usersService.updatePassword(data);
-    }
 }

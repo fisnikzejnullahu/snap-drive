@@ -13,5 +13,10 @@ export default new Vuex.Store({
   modules: {
     drive,
   },
-  plugins: [createPersistedState()],
+  plugins: [
+    // createPersistedState({
+    //   paths: ["drive.user"],
+    // }),
+    createPersistedState(),
+  ],
 });

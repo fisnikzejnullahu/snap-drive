@@ -5,9 +5,8 @@ const state = {
 };
 
 const mutations = {
-  UNLOCKED(state, { user, files, size }) {
+  UNLOCKED(state, { files, size }) {
     console.log("UNLOCKED");
-    state.user = user;
     state.files = files;
     state.size = size;
   },

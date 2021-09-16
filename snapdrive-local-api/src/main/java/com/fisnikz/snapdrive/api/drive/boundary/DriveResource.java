@@ -2,8 +2,7 @@ package com.fisnikz.snapdrive.api.drive.boundary;
 
 import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
-import com.fisnikz.snapdrive.api.drive.entity.FileShare;
-import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
+import com.fisnikz.snapdrive.api.drive.entity.*;
 import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
@@ -12,19 +11,22 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.inject.Inject;
-import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.List;
 
 /**
  * @author Fisnik Zejnullahu
@@ -47,72 +49,65 @@ public class DriveResource {
     }
 
     @GET
-    public JsonObject getFiles() {
-        return driveService.getAllFiles();
+    public JsonObject getFiles(@Context UriInfo uriInfo) {
+        boolean sharedWithMeOnly = uriInfo.getQueryParameters().containsKey("sharedWithMeOnly");
+        return driveService.getAllFiles(sharedWithMeOnly);
+    }
+
+    @GET
+    @Path("{fileId}")
+    public JsonObject getFile(@PathParam("fileId") String fileId) {
+        return driveService.getFile(fileId);
     }
 
     @POST
     @Path("upload")
-    @Consumes({MediaType.MULTIPART_FORM_DATA})
-    @Produces(MediaType.APPLICATION_JSON)
-    public JsonObject upload(@MultipartForm FileUploadForm form) throws IOException {
-        return driveService.upload(form);
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response upload(@MultipartForm FileUploadForm form) throws IOException {
+//        return driveService.upload(form);
+        String fileId = driveService.uploadToGoogleDrive(form);
+        return Response.created(URI.create("/drive/" + fileId)).build();
     }
 
     @GET
     @Path("download")
-    public Response downloadFile(@QueryParam("fileLink") String fileLink, @QueryParam("shared") boolean shared) throws IOException {
-        String filePath = driveService.downloadDecryptedFile(fileLink, shared);
-        var mimeType = Files.probeContentType(Paths.get(filePath));
-        byte[] bytes = Files.readAllBytes(Paths.get(filePath));
-        File file = new File(filePath);
-        file.delete();
+    public Response downloadFile(@QueryParam("fileId") String fileId, @Context UriInfo uriInfo) throws IOException {
+        boolean sharedFile = uriInfo.getQueryParameters().containsKey("sharedFile");
+        DownloadedFileMetadata downloadedFileMetadata = driveService.downloadDecryptedFile(fileId, sharedFile);
 
-        return Response.ok(bytes, mimeType)
-                .header("Content-disposition", "attachment; filename=" + file.getName())
+        return Response.ok(downloadedFileMetadata.getBytes(), downloadedFileMetadata.getMimeType())
+                .header("Content-disposition", "attachment; filename=" + downloadedFileMetadata.getFileName())
                 .build();
     }
 
     @DELETE
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public JsonObject delete(@PathParam("id") String fileId) {
-        return driveService.deleteFile(fileId);
+    public void delete(@PathParam("id") String fileId) {
+        driveService.deleteFile(fileId);
     }
 
     @GET
     @Path("size")
     public JsonObject sizeInCloud() {
-        return driveService.calculateTotalStorageSize(loggedInUserInfo.getUser().getId());
+        return driveService.calculateTotalStorageSize();
     }
 
     @POST
     @Path("{id}/file-shares")
-    public Response shareFile(@PathParam("id") String fileId, @QueryParam("recipientUsername") String recipientUsername) {
-        if (recipientUsername
+    public Response shareFile(@PathParam("id") String fileId, @QueryParam("recipientEmail") String recipientEmail) {
+        if (recipientEmail
                 .toLowerCase()
-                .equals(loggedInUserInfo.getUser().getUsername().toLowerCase())) {
+                .equals(loggedInUserInfo.getUser().getEmail().toLowerCase())) {
             return ResponseWithJsonBodyBuilder.withInformation(400, "You cannot share your own files with yourself!");
         }
 
         try {
-            FileShare data = driveService.shareFile(fileId, recipientUsername);
+            FilePermission data = driveService.shareFile(fileId, recipientEmail);
             return Response.ok(data).build();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchPaddingException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException | InvalidKeySpecException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
             e.printStackTrace();
         }
         return ResponseWithJsonBodyBuilder.withInternalError();
@@ -121,7 +116,7 @@ public class DriveResource {
     @GET
     @Path("file-shares")
     @Produces(MediaType.APPLICATION_JSON)
-    public JsonArray userSharedFiles() {
+    public List<DriveFile> userSharedFiles() {
         return driveService.getUserSharedFiles();
     }
 

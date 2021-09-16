@@ -1,49 +1,35 @@
 package com.fisnikz.snapdrive.api.users.entity;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Fisnik Zejnullahu
  */
-public class CreateUserRequest {
+public class CreateUserMasterPasswordRequest {
 
-    private String username;
-    private String password;
+    private String masterPassword;
     private String privateKey;
     private String publicKey;
     private String nonce;
     private int derivativeIterations;
     private String derivativeSalt;
 
-    private String masterPassword;
-
-    public CreateUserRequest() {
+    public CreateUserMasterPasswordRequest() {
     }
 
-    public CreateUserRequest(String username, String password, String privateKey, String publicKey, String nonce, int derivativeIterations, String derivativeSalt) {
-        this.username = username;
-        this.password = password;
+    public CreateUserMasterPasswordRequest(String privateKey, String publicKey, String nonce, int derivativeIterations, String derivativeSalt, String masterPassword) {
         this.privateKey = privateKey;
         this.publicKey = publicKey;
         this.nonce = nonce;
         this.derivativeIterations = derivativeIterations;
         this.derivativeSalt = derivativeSalt;
+        this.masterPassword = masterPassword;
     }
 
-    public String getUsername() {
-        return username;
+    public String getMasterPassword() {
+        return masterPassword;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    public void setMasterPassword(String masterPassword) {
+        this.masterPassword = masterPassword;
     }
 
     public String getPrivateKey() {
@@ -86,11 +72,5 @@ public class CreateUserRequest {
         this.derivativeSalt = derivativeSalt;
     }
 
-    public String getMasterPassword() {
-        return masterPassword;
-    }
 
-    public void setMasterPassword(String masterPassword) {
-        this.masterPassword = masterPassword;
-    }
 }

@@ -15,8 +15,8 @@ import java.lang.System.Logger;
 /**
  * @author Fisnik Zejnullahu
  */
-@Provider
-@PreMatching
+//@Provider
+//@PreMatching
 public class ClientFilter implements ContainerRequestFilter {
 
     @Inject

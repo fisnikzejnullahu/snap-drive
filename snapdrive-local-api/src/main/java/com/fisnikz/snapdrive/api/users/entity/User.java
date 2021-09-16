@@ -1,12 +1,6 @@
 package com.fisnikz.snapdrive.api.users.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
-
-import javax.json.bind.annotation.JsonbDateFormat;
 import javax.json.bind.annotation.JsonbTransient;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 /**
  * @author Fisnik Zejnullahu
@@ -14,7 +8,8 @@ import java.util.ArrayList;
 public class User {
 
     private String id;
-    private String username;
+    private String email;
+    private String googleId;
     private String hashedPassword;
     private String passwordSalt;
     private int derivativeIterations;
@@ -37,12 +32,20 @@ public class User {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getEmail() {
+        return email;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String googleId) {
+        this.googleId = googleId;
     }
 
     @JsonbTransient

@@ -37,8 +37,8 @@
       class="btn btn-light"
       :href="
         !sharedFile
-          ? `http://localhost:9091/drive/download?fileLink=${file.link}`
-          : `http://localhost:9091/drive/download?fileLink=${file.link}&shared=true`
+          ? `http://localhost:9091/drive/download?fileId=${file.googleDriveId}`
+          : `http://localhost:9091/drive/download?fileId=${file.googleDriveId}&sharedFile`
       "
       :download="file.fileName"
       ><svg
@@ -70,12 +70,6 @@ export default {
     uploading: Boolean,
     file: Object,
     sharedFile: Boolean,
-    sharedAt: String,
-    sharedBy: String,
-  },
-  mounted() {
-    console.log(this.sharedFile);
-    console.log(this.file);
   },
   data() {
     return {
@@ -95,11 +89,15 @@ export default {
         "https://findicons.com/files/icons/2813/flat_jewels/512/file.png",
     };
   },
+  mounted() {
+    console.log(this.file);
+  },
   methods: {
     showFileInformationModal() {
-      this.$emit("open-modal", this.sharedAt, this.sharedBy);
+      this.$emit("open-modal");
     },
     fileIcon(fileName) {
+      if (!fileName) return;
       switch (fileName.substring(fileName.lastIndexOf(".") + 1)) {
         case "pdf":
           return this.pdfIcon;
@@ -129,8 +127,8 @@ export default {
           return this.defaultFileIcon;
       }
     },
-    truncate(source) {
-      return source.length > 40 ? source.slice(0, 40 - 1) + "…" : source;
+    truncate(fileName) {
+      return fileName.length > 40 ? fileName.slice(0, 40 - 1) + "…" : fileName;
     },
   },
 };

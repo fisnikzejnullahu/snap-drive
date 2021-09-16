@@ -1,12 +1,9 @@
 package com.fisnikz.snapdrive.api.drive.control;
 
-import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
-import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
 import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 import com.fisnikz.snapdrive.crypto.entity.FileEncryptionFinalResult;
 import com.fisnikz.snapdrive.logging.Logged;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -15,19 +12,13 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.JsonObject;
 import javax.json.bind.JsonbBuilder;
-import javax.ws.rs.WebApplicationException;
 import java.io.*;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -50,17 +41,18 @@ public class FileManager {
     @Inject
     CryptoService cryptoService;
 
+    @Inject
+    GoogleDriveService googleDriveService;
+
     File encryptFile(File fileToEncrypt, User user) throws IOException {
         //master key save it in memory, to save time
         File outputFolder = new File("sdrive-" + UUID.randomUUID().toString());
         outputFolder.mkdir();
 
-        System.out.println(outputFolder.getAbsolutePath());
 
         try {
             cryptoService.encrypt(fileToEncrypt, outputFolder, user);
             File encryptedZipFile = toZipFile(outputFolder);
-            System.out.println("Local before: " + encryptedZipFile.getName());
 
             deleteFolder(outputFolder);
 
@@ -98,7 +90,6 @@ public class FileManager {
         ZipEntry zipEntry = zis.getNextEntry();
         while (zipEntry != null) {
             File newFile = new File(destDir + "/" + zipEntry.getName());
-            System.out.println(newFile.isDirectory());
             newFile.createNewFile();
             // fix for Windows-created archives
 
@@ -115,68 +106,32 @@ public class FileManager {
         zis.close();
     }
 
-    File downloadZipAndExtractToFolder(String link) {
-        System.out.println("DOWNOADING: " + link);
-        var fileName = link.substring(link.lastIndexOf("/") + 1, link.lastIndexOf(".zip"));
-        System.out.println("fileName = " + fileName);
-//        String downloadedZipFilePath = downloadFromInternet(fileName, link);
-//        File downloadedZipFile = new File(downloadedZipFilePath);
-        File downloadedZipFile = downloadFromInternet(fileName, link);
-        System.out.println("downloadedZipFile = " + downloadedZipFile.getAbsolutePath());
-//        String filePath = doDecrypt(downloadedZipFile, loggedInUserInfo.getUserPrivateKey(), false);
-//        downloadedZipFile.delete();
+    File downloadDriveFileAndExtractToFolder(String fileId) throws IOException {
+        var originalZipFileDownloadPath = DOWNLOADS_PATH + fileId + ".zip";
+        File extractedFolder = new File(DOWNLOADS_PATH + fileId);
+        googleDriveService.downloadFile(fileId, originalZipFileDownloadPath);
 
-        File extractedZip = new File(DOWNLOADS_PATH + downloadedZipFile.getName().substring(0, downloadedZipFile.getName().lastIndexOf(".zip")));
-        extractedZip.mkdirs();
+        extractedFolder.mkdirs();
+        extractZipFile(originalZipFileDownloadPath, extractedFolder);
 
-        try {
-            extractZipFile(downloadedZipFile.getAbsolutePath(), extractedZip);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        downloadedZipFile.delete();
+        Files.deleteIfExists(Path.of(originalZipFileDownloadPath));
 
-        return extractedZip;
+        return extractedFolder;
     }
 
-    // returns filePath
-    File downloadFromInternet(String fileName, String fileUrl) {
-        try {
-            URL website = new URL(fileUrl);
-            ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-            File downloadedFile = new File(DOWNLOADS_PATH + fileName + ".zip");
-            downloadedFile.createNewFile();
-            System.out.println("downloadedFile11111111111111 = " + downloadedFile.getAbsolutePath());
-//            final String FILE_PATH = DOWNLOADS_PATH + fileName + ".zip";
-            FileOutputStream fos = new FileOutputStream(downloadedFile);
-            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-            System.out.println("Done: " + fileName + ", " + LocalDateTime.now() + ", from " + Thread.currentThread().getName());
-            fos.close();
-            return downloadedFile;
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            throw new IllegalArgumentException("Something went wrong:");
-        }
-    }
-
-    String decrypt(File folder, PrivateKey privateKey, boolean onlyFileName) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
-        FileEncryptionFinalResult result = this.readConfigFileToEncryptionResult(folder);
-        SecretKey secretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(result.getBase64FileKey()), privateKey);
-        return doDecrypt(folder, secretKey, new IvParameterSpec(decodeFromBase64(result.getBase64FileInitializationVector())), onlyFileName);
-    }
-
-    String doDecrypt(File folder, SecretKey secretKey, IvParameterSpec IV, boolean onlyFileName) {
+    String decrypt(File folder, SecretKey secretKey, IvParameterSpec IV, boolean onlyFileName) {
         try {
             File encryptedFile = folder.listFiles(pathname -> !pathname.getName().contains(".config"))[0];
 
-            byte[] decryptedFileContent = cryptoService.decryptFile(encryptedFile, secretKey, IV);
-            byte[] decryptedFileName = cryptoService.decryptBytes(decodeFromBase64(encryptedFile.getName()), secretKey, IV);
+            String decryptedFileName = new String(cryptoService.decryptBytes(decodeFromBase64(encryptedFile.getName()), secretKey, IV));
 
             if (onlyFileName) {
-                return new String(decryptedFileName);
+                return decryptedFileName;
             }
 
-            File decryptedFile = new File(LOCAL_DECRYPTED_FILES_PATH + new String(decryptedFileName));
+            byte[] decryptedFileContent = cryptoService.decryptFile(encryptedFile, secretKey, IV);
+
+            File decryptedFile = new File(LOCAL_DECRYPTED_FILES_PATH + decryptedFileName);
             decryptedFile.createNewFile();
             Files.write(Path.of(decryptedFile.getAbsolutePath()), decryptedFileContent, StandardOpenOption.WRITE);
 
@@ -190,10 +145,10 @@ public class FileManager {
 
     void addUserToConfigFile(File folder, String userId, PrivateKey privateKey, String userPublicKeyBase64) throws IOException, NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
         FileEncryptionFinalResult result = readConfigFileToEncryptionResult(folder);
-
-        if (result.getSharedUsers().stream().anyMatch(sharedUsers -> sharedUsers.getUserId().equals(userId))) {
-            throw new WebApplicationException(ResponseWithJsonBodyBuilder.withInformation(409, "File is already shared to given user!"));
-        }
+//
+//        if (result.getSharedUsers().stream().anyMatch(sharedUsers -> sharedUsers.getUserId().equals(userId))) {
+//            throw new WebApplicationException(ResponseWithJsonBodyBuilder.withInformation(409, "File is already shared to given user!"));
+//        }
 
         String base64EncryptedFileKey = result.getBase64FileKey();
         SecretKey fileSecretKey = cryptoService.decryptFileKeyWithPrivateKey(decodeFromBase64(base64EncryptedFileKey), privateKey);
@@ -242,11 +197,12 @@ public class FileManager {
                 .fromJson(new ByteArrayInputStream(Files.readAllBytes(Path.of(configFile.getAbsolutePath()))), FileEncryptionFinalResult.class);
     }
 
-    void deleteFolder(File outputFile) {
-        for (File file : outputFile.listFiles()) {
+    //no need for recursive delete any nested files because snapdrive created folders don't have more than 2 files per folder (.config and the encrypted file)
+    void deleteFolder(File folder) {
+        for (File file : folder.listFiles()) {
             file.delete();
         }
-        outputFile.delete();
+        folder.delete();
     }
 
     void resetToUploadFolder() {

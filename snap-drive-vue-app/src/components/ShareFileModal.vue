@@ -6,15 +6,15 @@
         {{ apiMessage }}
       </p>
       <div class="form-group">
-        <label :for="recipientUsername"
-          >Username of user you want to share file with</label
+        <label :for="recipientEmail"
+          >Email of user you want to share file with</label
         >
         <input
           type="text"
           class="form-control"
           aria-describedby="hint"
-          placeholder="Username"
-          v-model.trim="recipientUsername"
+          placeholder="Email Address"
+          v-model.trim="recipientEmail"
         />
         <small id="hint" class="form-text text-muted"
           >Recipient will never know your master password. He will use his own
@@ -56,7 +56,7 @@ export default {
   data() {
     return {
       clickedShare: false,
-      recipientUsername: "",
+      recipientEmail: "",
       apiMessage: "",
     };
   },
@@ -66,17 +66,17 @@ export default {
     },
     hideModal() {
       this.clickedShare = false;
-      this.recipientUsername = "";
+      this.recipientEmail = "";
       this.apiMessage = "";
       this.$bvModal.hide("bv-modal-example");
     },
     onStartShare() {
-      if (this.recipientUsername.length === 0) {
-        this.apiMessage = "Please specify recipient's username!";
+      if (this.recipientEmail.length === 0) {
+        this.apiMessage = "Please specify recipient's email!";
         return;
       }
       this.clickedShare = true;
-      this.$emit("on-start-share-file", this.recipientUsername);
+      this.$emit("on-start-share-file", this.recipientEmail);
     },
     showErrorMessage(msg) {
       this.apiMessage = msg;

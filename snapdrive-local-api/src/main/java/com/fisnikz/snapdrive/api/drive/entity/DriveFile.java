@@ -1,46 +1,38 @@
 package com.fisnikz.snapdrive.api.drive.entity;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.bind.JsonbBuilder;
-import java.io.StringReader;
 import java.util.List;
 
 /**
  * @author Fisnik Zejnullahu
  */
 public class DriveFile {
-    private String id;
-    private String link;
+    private String googleDriveId;
     private long size;
-
     private String createdAt;
-    private String userId;
-    private List<FileShare> shares;
+    private String fileName;
+    private String sharedBy;
+    private List<FilePermission> permissions;
 
-    public DriveFile() {
-    }
-
-    public DriveFile(String link, long size, String userId) {
-        this.link = link;
+    public DriveFile(String googleDriveId, long size, String createdAt, List<FilePermission> permissions) {
+        this.googleDriveId = googleDriveId;
         this.size = size;
-        this.userId = userId;
+        this.createdAt = createdAt;
+        this.permissions = permissions;
     }
 
-    public String getId() {
-        return id;
+    public DriveFile(String googleDriveId, long size, String createdAt, String sharedBy) {
+        this.googleDriveId = googleDriveId;
+        this.size = size;
+        this.createdAt = createdAt;
+        this.sharedBy = sharedBy;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public String getGoogleDriveId() {
+        return googleDriveId;
     }
 
-    public String getLink() {
-        return link;
-    }
-
-    public void setLink(String link) {
-        this.link = link;
+    public void setGoogleDriveId(String googleDriveId) {
+        this.googleDriveId = googleDriveId;
     }
 
     public long getSize() {
@@ -59,36 +51,27 @@ public class DriveFile {
         this.createdAt = createdAt;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getFileName() {
+        return fileName;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 
-    public List<FileShare> getShares() {
-        return shares;
+    public String getSharedBy() {
+        return sharedBy;
     }
 
-    public void setShares(List<FileShare> shares) {
-        this.shares = shares;
+    public void setSharedBy(String sharedBy) {
+        this.sharedBy = sharedBy;
     }
 
-    @Override
-    public String toString() {
-        return "FileMetadata{" +
-                "id='" + id + '\'' +
-                ", link='" + link + '\'' +
-                ", size=" + size +
-                ", createdAt=" + createdAt +
-                '}';
+    public List<FilePermission> getPermissions() {
+        return permissions;
     }
 
-    public JsonObject toJsonObject() {
-        System.out.println("DRIVE FILE TO JSON");
-        JsonObject jsonObject = Json.createReader(new StringReader(JsonbBuilder.create().toJson(this))).readObject();
-        System.out.println(jsonObject);
-        return jsonObject;
+    public void setPermissions(List<FilePermission> permissions) {
+        this.permissions = permissions;
     }
 }

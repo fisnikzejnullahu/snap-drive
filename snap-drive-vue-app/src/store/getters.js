@@ -4,6 +4,8 @@ export const driveFiles = (state) => {
 };
 
 export const driveSize = (state) => {
+  console.log('GETTERSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS');
+  console.log(state.drive.size);
   return state.drive.size;
 };
 

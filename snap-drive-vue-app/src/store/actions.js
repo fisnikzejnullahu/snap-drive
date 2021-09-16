@@ -1,26 +1,9 @@
 const apiUrl = "http://localhost:9091";
 
-export const login = async ({ commit }, userInfo) => {
-  console.log("ACTIONS: LOGIN");
-  let response = await fetch(`${apiUrl}/users/login`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: userInfo,
+export const onUserLogin = ({ commit }, user) => {
+  commit("LOGGED_IN", {
+    user: user,
   });
-
-  console.log(userInfo);
-  if (response.status === 200) {
-    let body = await response.json();
-    commit("LOGGED_IN", {
-      user: {
-        username: body.username,
-      },
-    });
-  }
-
-  return response;
 };
 
 export const unlock = async ({ commit }, masterPassword) => {
@@ -37,12 +20,14 @@ export const unlock = async ({ commit }, masterPassword) => {
     let body = await response.json();
     console.log(body);
     commit("UNLOCKED", {
-      user: {
-        username: body.username,
-        registerAt: body.registerAt,
-      },
       files: body.files,
-      size: body.size,
+      size: {
+        storageSizeSnapDrive: body.storageSizeSnapDrive,
+        storageSizeSnapDrivePercentage: body.storageSizeSnapDrivePercentage,
+        storageLimit: body.storageLimit,
+        storageInDrive: body.storageInDrive,
+        storageInGCM: body.storageInGCM,
+      },
     });
   }
   return response;
@@ -55,11 +40,8 @@ export const deleteFile = async ({ commit }, fileId) => {
     method: "DELETE",
   });
 
-  if (response.status === 200) {
-    let body = await response.json();
-    if (body.deleted) {
-      commit("DELETE_FILE", fileId);
-    }
+  if (response.status === 204) {
+    commit("DELETE_FILE", fileId);
   }
   return response;
 };
@@ -74,8 +56,10 @@ export const uploadFile = async ({ commit }, formData) => {
       method: "POST",
     });
 
-    if (response.status === 200) {
-      let addedFile = await response.json();
+    if (response.status === 201) {
+      let locationHeader = response.headers.get("Location");
+      let getFileResponse = await fetch(locationHeader);
+      let addedFile = await getFileResponse.json();
       commit("ADD_FILE", addedFile);
     }
 

@@ -20,8 +20,10 @@ public class LoggingInterceptor {
 
     @AroundInvoke
     public Object logMethodCall(InvocationContext ic) throws Exception {
-        LOG.log(Logger.Level.INFO, "Method: \"" + ic.getMethod().getName() + "\" of class " + ic.getTarget().getClass().getSimpleName() + " called");
+        var start = System.currentTimeMillis();
         Object res = ic.proceed();
+        double finished = (System.currentTimeMillis() - start) / 1000.0;
+        LOG.log(Logger.Level.INFO, "Method: \"" + ic.getMethod().getName() + "\" of class " + ic.getTarget().getClass().getSimpleName() + " was called and took: (" + finished + " seconds)");
         return res;
     }
 }

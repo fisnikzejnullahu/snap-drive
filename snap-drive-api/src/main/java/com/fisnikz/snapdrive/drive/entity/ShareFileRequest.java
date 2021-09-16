@@ -1,6 +1,5 @@
 package com.fisnikz.snapdrive.drive.entity;
 
-import javax.json.bind.annotation.JsonbDateFormat;
 import java.time.LocalDateTime;
 
 /**
@@ -8,28 +7,46 @@ import java.time.LocalDateTime;
  */
 public class ShareFileRequest {
 
-    private String fileId;
-    private String recipientUsername;
+    private String shareId;
+    private String driveFileId;
+    private String ownerId;
+    private String recipientEmail;
 
     private LocalDateTime sharedAt;
 
     public ShareFileRequest() {
     }
 
-    public String getFileId() {
-        return fileId;
+    public String getShareId() {
+        return shareId;
     }
 
-    public void setFileId(String fileId) {
-        this.fileId = fileId;
+    public void setShareId(String shareId) {
+        this.shareId = shareId;
     }
 
-    public String getRecipientUsername() {
-        return recipientUsername;
+    public String getDriveFileId() {
+        return driveFileId;
     }
 
-    public void setRecipientUsername(String recipientUsername) {
-        this.recipientUsername = recipientUsername;
+    public void setDriveFileId(String driveFileId) {
+        this.driveFileId = driveFileId;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public String getRecipientEmail() {
+        return recipientEmail;
+    }
+
+    public void setRecipientEmail(String recipientEmail) {
+        this.recipientEmail = recipientEmail;
     }
 
     public LocalDateTime getSharedAt() {

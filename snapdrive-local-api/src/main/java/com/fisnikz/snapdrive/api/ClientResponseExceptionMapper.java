@@ -11,7 +11,7 @@ import javax.ws.rs.core.Response;
  * @author Fisnik Zejnullahu
  */
 @ApplicationScoped
-public class MyResponseExceptionMapper implements ResponseExceptionMapper<WebApplicationException> {
+public class ClientResponseExceptionMapper implements ResponseExceptionMapper<WebApplicationException> {
 
     @Override
     public WebApplicationException toThrowable(Response response) {

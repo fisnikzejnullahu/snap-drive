@@ -1,9 +1,10 @@
 package com.fisnikz.snapdrive.api.users.boundary;
 
+import com.fisnikz.snapdrive.api.users.control.GoogleAuthService;
 import com.fisnikz.snapdrive.api.users.control.UsersService;
-import com.fisnikz.snapdrive.api.users.entity.CreateUserRequest;
+import com.fisnikz.snapdrive.api.users.entity.CreateUserMasterPasswordRequest;
+import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
 import com.fisnikz.snapdrive.api.users.entity.User;
-import com.fisnikz.snapdrive.api.users.entity.UserLoginRequest;
 import com.fisnikz.snapdrive.logging.Logged;
 
 import javax.inject.Inject;
@@ -25,13 +26,24 @@ public class UsersResource {
     @Inject
     UsersService usersService;
 
+    @Inject
+    LoggedInUserInfo loggedInUserInfo;
+
     @POST
-    public Response create(CreateUserRequest createUserRequest) {
-        Response create = null;
+    @Path("signin")
+    public Response signInWithGoogle(@QueryParam("authCode") String authorizationCode) {
+        return usersService.signInWithGoogle(authorizationCode);
+    }
+
+    @POST
+    @Path("master-password")
+    public Response createUserMasterPassword(CreateUserMasterPasswordRequest createUserMasterPasswordRequest) {
         try {
-            create = usersService.create(createUserRequest);
-            return create;
+            User user = usersService.createMasterPassword(loggedInUserInfo.getUser().getId(), createUserMasterPasswordRequest.getMasterPassword());
+            loggedInUserInfo.setUser(user);
+            return Response.ok().build();
         } catch (Exception e) {
+            e.printStackTrace();
             if (e instanceof WebApplicationException) {
                 return ((WebApplicationException) e).getResponse();
             }
@@ -44,19 +56,13 @@ public class UsersResource {
         }
 //        CompletableFuture.runAsync(response::resume);
 //        CompletableFuture
-//                .supplyAsync(() -> usersService.create(createUserRequest))
+//                .supplyAsync(() -> usersService.signInWithGoogle(createUserRequest))
 //                .thenAccept(response::resume);
     }
 
     @Path("settings")
     public UsersSettingsResource updateSettings() {
         return new UsersSettingsResource(usersService);
-    }
-
-    @POST
-    @Path("login")
-    public User login(UserLoginRequest loginRequest) {
-        return usersService.login(loginRequest);
     }
 
     @POST

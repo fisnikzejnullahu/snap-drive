@@ -19,10 +19,21 @@
               d="M9.5 6.5a1.5 1.5 0 0 1-1 1.415l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99a1.5 1.5 0 1 1 2-1.415z"
             />
           </svg>
-          <h4 class="mt-3">What's the password?</h4>
-          <p class="forgot">
+          <h4 class="mt-3">
+            {{
+              createMasterPassword
+                ? "Create master password"
+                : "What's the password?"
+            }}
+          </h4>
+          <p v-if="createMasterPassword" class="forgot">
+            Master password is the key to unlock your files! Please memorize it
+            because your files can get locked forever without correct key!
+            <span class="text-success">({{ currentUser.user.email }})</span>
+          </p>
+          <p v-else class="forgot">
             Enter your master password to unlock your files
-            <span class="text-success">({{ currentUser.user.username }})</span>
+            <span class="text-success">({{ currentUser.user.email }})</span>
           </p>
         </div>
         <div class="form-group">
@@ -32,14 +43,20 @@
             v-model.trim="masterPassword"
             placeholder="Password"
           />
-          <p style="color: #ff0000" v-if="error">Incorrect password!</p>
+          <p
+            :style="!success ? 'color: #ff0000' : 'color: #3fb618'"
+            v-if="apiMessage.length !== 0"
+          >
+            {{ apiMessage }}
+          </p>
         </div>
         <div class="form-group">
           <SpinningButton
-            :text="'Unlock'"
+            :text="createMasterPassword ? 'Submit' : 'Unlock'"
             :textColor="'#fff'"
-            :classNames="'btn btn-primary btn-block'"
+            :classNames="'btn btn-light btn-block rounded'"
             :clicked="clicked"
+            :style="'background: linear-gradient(90deg, #34d399 0%, #4154f1 100%); color: #fff'"
           />
         </div>
         <div class="form-group">
@@ -62,18 +79,22 @@ import SpinningButton from "../components/SpinningButton.vue";
 
 export default {
   components: { SpinningButton },
+  props: {
+    createMasterPassword: Boolean,
+  },
   data() {
     return {
       masterPassword: "",
       clicked: false,
       show: false,
-      error: false,
+      apiMessage: "",
+      success: true,
+      apiUrl: "http://localhost:9091/users",
     };
   },
   mounted() {
-    console.log("MOUNTED DRIVE UNLOCK");
+    console.log(this.createMasterPassword);
     console.log(this.currentUser);
-    console.log("++++++++------------");
     if (this.currentUser.user === null) {
       this.$router.push("login");
     }
@@ -92,14 +113,38 @@ export default {
     },
     async onSubmit(e) {
       this.clicked = true;
+      this.apiMessage = "";
+      this.success = true;
+
+      if (this.createMasterPassword) {
+        let resp = await fetch(`${this.apiUrl}/master-password`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ masterPassword: this.masterPassword }),
+        });
+
+        if (resp.status === 200) {
+          this.apiMessage = "Password created. We're signing you in...";
+        } else {
+          this.apiMessage = "Something went wrong!";
+          this.success = false;
+          this.clicked = false;
+          return;
+        }
+      }
       let response = await this.unlock(
         JSON.stringify({ masterPassword: this.masterPassword })
       );
-      if (response.status !== 200) {
-        this.error = true;
-      } else {
+
+      if (response.status === 200) {
         this.$router.push("drive");
+      } else if (response.status === 403) {
+        this.apiMessage = "Invalid password!";
+        this.success = false;
       }
+      this.masterPassword = "";
       this.clicked = false;
     },
   },
@@ -109,7 +154,7 @@ export default {
 <style scoped>
 .login-dark {
   height: 100%;
-  background: #fafbfe;
+  background: url(../assets/img/hero-bg.png) top center no-repeat;
   background-size: cover;
   position: relative;
 }
