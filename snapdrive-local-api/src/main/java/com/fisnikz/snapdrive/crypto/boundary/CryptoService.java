@@ -1,12 +1,14 @@
 package com.fisnikz.snapdrive.crypto.boundary;
 
-import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.crypto.control.AesService;
 import com.fisnikz.snapdrive.crypto.control.ChaChaService;
 import com.fisnikz.snapdrive.crypto.control.PBKDF2Service;
 import com.fisnikz.snapdrive.crypto.control.RsaService;
-import com.fisnikz.snapdrive.crypto.entity.*;
+import com.fisnikz.snapdrive.crypto.entity.DerivativePasswordKeyInfo;
+import com.fisnikz.snapdrive.crypto.entity.FileEncryptionFinalResult;
+import com.fisnikz.snapdrive.crypto.entity.FileEncryptionInfo;
+import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -51,16 +53,16 @@ public class CryptoService {
         this.chaChaService = chaChaService;
     }
 
-    public RsaService getRsaService() {
-        return rsaService;
-    }
-
     public static String encodeToBase64(byte[] array) {
         return Base64.getUrlEncoder().encodeToString(array);
     }
 
     public static byte[] decodeFromBase64(String encoded) {
         return Base64.getUrlDecoder().decode(encoded);
+    }
+
+    public RsaService getRsaService() {
+        return rsaService;
     }
 
     public byte[] encryptPrivateKeyWithUserKey(PrivateKey privateKey, SecretKey userKey, byte[] nonce) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
@@ -113,20 +115,6 @@ public class CryptoService {
         Files.write(Path.of(encryptedFile.getAbsolutePath()), fileEncryptionResult.getEncryptedInput(), StandardOpenOption.WRITE);
     }
 
-    public String updateFileEncryptionKey(String oldMasterPassword, String saltBase64, String oldPrivateKeyBase64, int derivativeIterations,
-                                          String nonceBase64, String oldEncryptedFileKeyBase64, String newPublicKeyBase64) throws InvalidKeySpecException, NoSuchAlgorithmException,
-            IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchPaddingException,
-            IOException, InvalidAlgorithmParameterException {
-
-        MasterPasswordKeyInfo masterPasswordKeyInfo = generateDerivativePasswordWithSalt(oldMasterPassword, saltBase64, derivativeIterations);
-        PrivateKey oldPrivateKey = this.decryptPrivateKeyUsingMasterKey(oldPrivateKeyBase64, masterPasswordKeyInfo.getSecretKey(), nonceBase64);
-        byte[] decryptedFileKey = this.rsaService.decrypt(decodeFromBase64(oldEncryptedFileKeyBase64), oldPrivateKey);
-
-        PublicKey newPublicKey = (PublicKey) generateRSAKeyFromBase64(newPublicKeyBase64, false);
-        byte[] newEncryptedFileKey = this.encryptFileKeyWithPubKey(new SecretKeySpec(decryptedFileKey, "AES"), newPublicKey);
-        return encodeToBase64(newEncryptedFileKey);
-    }
-
     public byte[] decryptFile(File inputFile, SecretKey key, IvParameterSpec iv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, IOException {
         return aesService.decrypt(readFileBytes(inputFile), key, iv);
     }
@@ -144,7 +132,7 @@ public class CryptoService {
         return inputBytes;
     }
 
-    public MasterPasswordKeyInfo generateDerivativePassword(String password) {
+    public DerivativePasswordKeyInfo generateDerivativePassword(String password) {
         return pbkdf2Service.generateKey(password);
     }
 
@@ -179,14 +167,14 @@ public class CryptoService {
         return this.rsaService.generatePrivateKeyFromBytesArray(bytes, isPrivateKey);
     }
 
-    public MasterPasswordKeyInfo generateDerivativePasswordWithSalt(String password, String derivativeSaltBase64, int derivativeIterations) {
+    public DerivativePasswordKeyInfo generateDerivativePasswordWithSalt(String password, String derivativeSaltBase64, int derivativeIterations) {
         byte[] salt = decodeFromBase64(derivativeSaltBase64);
         return this.pbkdf2Service.generateKeyWithGivenSalt(password, salt);
     }
 
-    public MasterPasswordCryptoResults doCryptoToMasterPassword(String masterPassword) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
+    public MasterPasswordCryptoResults generateNewMasterPassword(String masterPassword) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
         KeyPair rsaKeyPair = this.generateRSAKeyPair();
-        MasterPasswordKeyInfo passwordKeyInfo = this.generateDerivativePassword(masterPassword);
+        DerivativePasswordKeyInfo passwordKeyInfo = this.generateDerivativePassword(masterPassword);
 
         byte[] nonce = this.chaChaService.generateNonce();
         String base64Nonce = CryptoService.encodeToBase64(nonce);
@@ -194,6 +182,23 @@ public class CryptoService {
         byte[] encryptedPrivateKey = this.encryptPrivateKeyWithUserKey(rsaKeyPair.getPrivate(), passwordKeyInfo.getSecretKey(), nonce);
         return new MasterPasswordCryptoResults(encodeToBase64(encryptedPrivateKey), encodeToBase64(rsaKeyPair.getPublic().getEncoded()),
                 base64Nonce, encodeToBase64(passwordKeyInfo.getSalt()), passwordKeyInfo.getIterations());
-
     }
+
+    public MasterPasswordCryptoResults updateUserMasterPassword(User user, String oldMasterPassword, String newMasterPassword) throws InvalidKeySpecException, NoSuchAlgorithmException,
+            IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchPaddingException,
+            IOException, InvalidAlgorithmParameterException {
+
+        DerivativePasswordKeyInfo oldDerivativePasswordKeyInfo = generateDerivativePasswordWithSalt(oldMasterPassword, user.getDerivativeSalt(), user.getDerivativeIterations());
+        PrivateKey privateKey = this.decryptPrivateKeyUsingMasterKey(user.getPrivateKey(), oldDerivativePasswordKeyInfo.getSecretKey(), user.getNonce());
+
+        DerivativePasswordKeyInfo newPasswordKeyInfo = this.generateDerivativePassword(newMasterPassword);
+
+        byte[] nonce = this.chaChaService.generateNonce();
+        String base64Nonce = CryptoService.encodeToBase64(nonce);
+        byte[] encryptedPrivateKey = this.encryptPrivateKeyWithUserKey(privateKey, newPasswordKeyInfo.getSecretKey(), nonce);
+
+        return new MasterPasswordCryptoResults(encodeToBase64(encryptedPrivateKey), user.getPublicKey(),
+                base64Nonce, encodeToBase64(newPasswordKeyInfo.getSalt()), newPasswordKeyInfo.getIterations());
+    }
+
 }

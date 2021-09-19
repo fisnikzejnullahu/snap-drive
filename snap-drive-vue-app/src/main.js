@@ -13,8 +13,7 @@ import GAuth from "vue-google-oauth2";
 // Make BootstrapVue available throughout your project
 Vue.use(BootstrapVue);
 const gauthOption = {
-  clientId:
-    "292619143681-t5kpm330je2ktu7q0ots03mcc3r86tsj.apps.googleusercontent.com",
+  clientId: "",
   scope: "profile email https://www.googleapis.com/auth/drive",
   prompt: "consent",
 };

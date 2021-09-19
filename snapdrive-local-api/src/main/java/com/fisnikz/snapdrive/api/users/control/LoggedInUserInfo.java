@@ -1,8 +1,10 @@
-package com.fisnikz.snapdrive.api.users.entity;
+package com.fisnikz.snapdrive.api.users.control;
 
-import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
+import com.fisnikz.snapdrive.api.users.entity.SignInWithGoogleResponse;
+import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
-import com.fisnikz.snapdrive.crypto.entity.MasterPasswordKeyInfo;
+import com.fisnikz.snapdrive.crypto.entity.DerivativePasswordKeyInfo;
+import io.quarkus.runtime.Startup;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.annotation.PostConstruct;
@@ -11,8 +13,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.JsonObject;
-import javax.json.bind.JsonbBuilder;
+import javax.ws.rs.core.Response;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -23,7 +24,26 @@ import java.security.spec.InvalidKeySpecException;
  * @author Fisnik Zejnullahu
  */
 @ApplicationScoped
+//@Startup
 public class LoggedInUserInfo {
+
+    @Inject
+    @RestClient
+    UsersResourceClient usersResourceClient;
+
+//    @PostConstruct
+//    public void init() {
+//
+//        Response response = usersResourceClient.signInWithGoogle(new SignInWithGoogleResponse("jessbrooks131@gmail.com", "104023429820123018703"));
+//        User user = response.readEntity(User.class);
+//        setUser(user);
+//        unlock("1234");
+//
+//        System.out.println("INIT+++++++++++++++++++++++++++++");
+//        System.out.println(user.getPrivateKey());
+//        System.out.println("INIT++++++++++++++++++++++++++++++++");
+//    }
+
 
     @Inject
     CryptoService cryptoService;
@@ -41,12 +61,13 @@ public class LoggedInUserInfo {
                 return false;
             }
         }
+        System.out.println("NO USER LOGGED IN");
         return false;
     }
 
     private void decryptedPrivateKey(String masterPassword, String masterPasswordSaltBase64, String nonceBase64, String encryptedPrivateKeyBase64) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
-        MasterPasswordKeyInfo masterPasswordKeyInfo = cryptoService.generateDerivativePasswordWithSalt(masterPassword, masterPasswordSaltBase64, 65536);
-        this.userPrivateKey = cryptoService.decryptPrivateKeyUsingMasterKey(encryptedPrivateKeyBase64, masterPasswordKeyInfo.getSecretKey(), nonceBase64);
+        DerivativePasswordKeyInfo derivativePasswordKeyInfo = cryptoService.generateDerivativePasswordWithSalt(masterPassword, masterPasswordSaltBase64, 65536);
+        this.userPrivateKey = cryptoService.decryptPrivateKeyUsingMasterKey(encryptedPrivateKeyBase64, derivativePasswordKeyInfo.getSecretKey(), nonceBase64);
     }
 
     public User getUser() {

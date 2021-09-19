@@ -26,7 +26,7 @@
       <div class="col">
         <button
           type="button"
-          class="btn btn-light btn-block"
+          class="btn btn-light btn-block rounded"
           @click="hideModal"
         >
           Cancel
@@ -38,7 +38,7 @@
           :textColor="'#fff'"
           :clicked="clickedShare"
           :enableClickHandler="true"
-          :classNames="'btn btn-info btn-block'"
+          :classNames="'btn btn-info btn-block rounded'"
           @onClick="onStartShare"
         />
       </div>

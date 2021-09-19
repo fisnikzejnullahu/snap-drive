@@ -1,15 +1,12 @@
 package com.fisnikz.snapdrive.api.drive.boundary;
 
-import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
-import com.fisnikz.snapdrive.logging.Logged;
+import com.fisnikz.snapdrive.api.users.control.LoggedInUserInfo;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Provider;
 import java.lang.System.Logger;
 
 /**

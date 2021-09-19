@@ -5,8 +5,8 @@ import com.fisnikz.snapdrive.api.drive.entity.DownloadedFileMetadata;
 import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
 import com.fisnikz.snapdrive.api.drive.entity.FilePermission;
 import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
+import com.fisnikz.snapdrive.api.users.control.LoggedInUserInfo;
 import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
-import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 import com.fisnikz.snapdrive.crypto.entity.FileEncryptionFinalResult;
 import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
@@ -52,19 +52,17 @@ import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.decodeFromBase
 @Logged
 public class DriveService {
 
-    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
-    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
-    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
+//    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
+//    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
+//    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
+
+    private final String TO_UPLOAD_PATH = "/snap-files/toUpload/";
 
     @Inject
     CryptoService cryptoService;
 
     @Inject
     LoggedInUserInfo loggedInUserInfo;
-
-    @Inject
-    @RestClient
-    DriveSharesResourceClient driveSharesResourceClient;
 
     @Inject
     @RestClient
@@ -212,27 +210,6 @@ public class DriveService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        driveSharesResourceClient.deleteFileShares(fileId);
-    }
-
-    public MasterPasswordCryptoResults updateMasterPassword(String newMasterPassword, String oldMasterPassword) {
-//        try {
-//            MasterPasswordCryptoResults masterPasswordCryptoResults = cryptoService.doCryptoToMasterPassword(newMasterPassword);
-//
-//            for (DriveFile originalDriveFile : driveSharesResourceClient.getFiles(loggedInUserInfo.getUser().getId())) {
-//                File folder = fileManager.downloadZipAndExtractToFolder(originalDriveFile.getGoogleDriveId());
-//                fileManager.updateFileKey(folder, loggedInUserInfo.getUser(), masterPasswordCryptoResults.getPublicKeyBase64(), oldMasterPassword);
-//                File zipFile = fileManager.toZipFile(folder);
-//
-//                googleDriveService.updateFile(originalDriveFile.getGoogleDriveId(), zipFile);
-//            }
-//
-//            fileManager.resetToUploadFolder();
-//            return masterPasswordCryptoResults;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-        return null;
-//        }
     }
 
     public FilePermission shareFile(String fileId, String recipientEmail) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
@@ -250,19 +227,9 @@ public class DriveService {
         Files.deleteIfExists(Path.of(toZipFile.getAbsolutePath()));
         fileManager.deleteFolder(extractedFolder);
         return filePermission;
-//        return driveSharesResourceClient.shareFile(new FilePermission(permissionId, fileId, loggedInUserInfo.getUser().getId(), recipientEmail));
     }
 
     public List<DriveFile> getUserSharedFiles() {
-//        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
-//
-//        driveSharesResourceClient.getSharedFilesToUser(loggedInUserInfo.getUser().getId())
-//                .stream()
-//                .map(JsonValue::asJsonObject)
-//                .map(this::downloadAndDecryptSharedFile)
-//                .forEach(arrayBuilder::add);
-//
-//        return arrayBuilder.build();
         try {
             return googleDriveService.getFiles(true);
         } catch (IOException e) {
@@ -293,9 +260,9 @@ public class DriveService {
     }
 
     private JsonObjectBuilder downloadAndDecryptFileName(DriveFile driveFile, boolean sharedFile) {
+        File extractedFolder = null;
         try {
-            File extractedFolder = fileManager.downloadDriveFileAndExtractToFolder(driveFile.getGoogleDriveId());
-
+            extractedFolder = fileManager.downloadDriveFileAndExtractToFolder(driveFile.getGoogleDriveId());
             String decryptedFileName;
             FileEncryptionFinalResult result = fileManager.readConfigFileToEncryptionResult(extractedFolder);
             if (sharedFile) {
@@ -310,7 +277,7 @@ public class DriveService {
                 decryptedFileName = fileManager.decrypt(extractedFolder, secretKey, IV, true);
             }
 
-            fileManager.deleteFolder(extractedFolder);
+
             return Json.createObjectBuilder(Json.createReader(new StringReader(jsonb.toJson(driveFile))).readObject())
                     .add("fileName", decryptedFileName)
                     .add("readableSize", humanReadableByteCountBin(driveFile.getSize()));
@@ -324,6 +291,10 @@ public class DriveService {
             return Json.createObjectBuilder()
                     .add("success", false)
                     .add("message", "Not decrypted because there is given invalid key!");
+        } finally {
+            if (extractedFolder != null) {
+                fileManager.deleteFolder(extractedFolder);
+            }
         }
 
 

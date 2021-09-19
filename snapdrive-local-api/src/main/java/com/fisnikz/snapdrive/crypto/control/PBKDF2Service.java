@@ -1,6 +1,6 @@
 package com.fisnikz.snapdrive.crypto.control;
 
-import com.fisnikz.snapdrive.crypto.entity.MasterPasswordKeyInfo;
+import com.fisnikz.snapdrive.crypto.entity.DerivativePasswordKeyInfo;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -20,21 +20,21 @@ public class PBKDF2Service {
     private static final int HASH_BYTES = 256;
     private static final int PBKDF2_ITERATIONS = 65536;
 
-    public MasterPasswordKeyInfo generateKey(String password) {
+    public DerivativePasswordKeyInfo generateKey(String password) {
         try {
             byte[] salt = generateSalt();
             SecretKey secretKey = generate(password.toCharArray(), salt);
-            return new MasterPasswordKeyInfo(secretKey, salt, PBKDF2_ITERATIONS);
+            return new DerivativePasswordKeyInfo(secretKey, salt, PBKDF2_ITERATIONS);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
     }
 
-    public MasterPasswordKeyInfo generateKeyWithGivenSalt(String password, byte[] salt) {
+    public DerivativePasswordKeyInfo generateKeyWithGivenSalt(String password, byte[] salt) {
         try {
             SecretKey secretKey = generate(password.toCharArray(), salt);
-            return new MasterPasswordKeyInfo(secretKey, salt, PBKDF2_ITERATIONS);
+            return new DerivativePasswordKeyInfo(secretKey, salt, PBKDF2_ITERATIONS);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());

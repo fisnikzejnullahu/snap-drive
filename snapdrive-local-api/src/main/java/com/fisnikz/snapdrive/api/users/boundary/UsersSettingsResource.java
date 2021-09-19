@@ -19,22 +19,24 @@ public class UsersSettingsResource {
         this.usersService = usersService;
     }
 
+    //TODO only put for master password, in each way you will be creating master password
+    //if user exists it will create/update, else return 404 if no user found
     @PUT
     @Path("master-password")
     public Response updateMasterPassword(UpdateMasterPasswordRequest updateMasterPasswordRequest) {
         return usersService.updateMasterPassword(updateMasterPasswordRequest.getNewMasterPassword(), updateMasterPasswordRequest.getOldMasterPassword());
 
-//        usersService.signInWithGoogle(createUserRequest);
+//        usersService.addOrUpdateUser(createUserRequest);
 //        CompletableFuture.runAsync(response::resume);
 //        CompletableFuture
-//                .supplyAsync(() -> usersService.signInWithGoogle(createUserRequest))
+//                .supplyAsync(() -> usersService.addOrUpdateUser(createUserRequest))
 //                .thenAccept(response::resume);
     }
 
-    @PUT
-    @Path("profile")
-    public Response updateProfile(JsonObject data) {
-        return usersService.updateProfile(data.getString("newUsername"));
-    }
+//    @PUT
+//    @Path("profile")
+//    public Response updateProfile(JsonObject data) {
+//        return usersService.updateProfile(data.getString("newUsername"));
+//    }
 
 }

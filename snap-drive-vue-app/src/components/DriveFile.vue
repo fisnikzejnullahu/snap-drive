@@ -34,7 +34,7 @@
       <p class="card-text">{{ truncate(file.fileName) }}</p>
     </div>
     <a
-      class="btn btn-light"
+      class="btn btn-light rounded"
       :href="
         !sharedFile
           ? `http://localhost:9091/drive/download?fileId=${file.googleDriveId}`

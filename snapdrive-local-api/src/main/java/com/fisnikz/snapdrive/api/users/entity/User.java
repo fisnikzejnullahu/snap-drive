@@ -10,15 +10,11 @@ public class User {
     private String id;
     private String email;
     private String googleId;
-    private String hashedPassword;
-    private String passwordSalt;
     private int derivativeIterations;
     private String derivativeSalt;
-
     private String privateKey;
     private String publicKey;
     private String nonce;
-    //    private int counter;
     private String registerAt;
 
     public User() {
@@ -46,24 +42,6 @@ public class User {
 
     public void setGoogleId(String googleId) {
         this.googleId = googleId;
-    }
-
-    @JsonbTransient
-    public String getHashedPassword() {
-        return hashedPassword;
-    }
-
-    public void setHashedPassword(String hashedPassword) {
-        this.hashedPassword = hashedPassword;
-    }
-
-    @JsonbTransient
-    public String getPasswordSalt() {
-        return passwordSalt;
-    }
-
-    public void setPasswordSalt(String passwordSalt) {
-        this.passwordSalt = passwordSalt;
     }
 
     @JsonbTransient
@@ -101,6 +79,7 @@ public class User {
     public void setPublicKey(String publicKey) {
         this.publicKey = publicKey;
     }
+
     @JsonbTransient
     public String getNonce() {
         return nonce;

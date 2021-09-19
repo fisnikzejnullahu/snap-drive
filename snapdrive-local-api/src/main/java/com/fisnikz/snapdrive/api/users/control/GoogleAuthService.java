@@ -48,6 +48,7 @@ public class GoogleAuthService {
             return new SignInWithGoogleResponse(payload.getEmail(), payload.getSubject());
 
         } catch (TokenResponseException ex) {
+            ex.printStackTrace();
             throw new WebApplicationException(401);
         } catch (IOException e) {
             e.printStackTrace();
@@ -65,6 +66,7 @@ public class GoogleAuthService {
     }
 
     private void getTokensWithAuthorizationCode(String code) throws IOException {
+        System.out.println("code = " + code);
         System.out.println("clientId = " + clientId);
         System.out.println("clientSecret = " + clientSecret);
         System.out.println("redirectUri = " + redirectUri);

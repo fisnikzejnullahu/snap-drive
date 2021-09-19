@@ -3,21 +3,6 @@
     <ul class="nav nav-tabs mb-4">
       <li class="nav-item">
         <a
-          :class="['nav-link', isActiveClass('profile') ? 'active' : '']"
-          aria-current="page"
-          href="profile"
-          >User Profile</a
-        >
-      </li>
-      <li class="nav-item">
-        <a
-          :class="['nav-link', isActiveClass('password') ? 'active' : '']"
-          href="password"
-          >Change Password</a
-        >
-      </li>
-      <li class="nav-item">
-        <a
           :class="['nav-link', isActiveClass('masterpassword') ? 'active' : '']"
           href="masterpassword"
           >Change Master Password</a

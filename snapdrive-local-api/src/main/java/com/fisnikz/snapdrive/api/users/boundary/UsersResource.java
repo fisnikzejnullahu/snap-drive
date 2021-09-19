@@ -1,9 +1,8 @@
 package com.fisnikz.snapdrive.api.users.boundary;
 
-import com.fisnikz.snapdrive.api.users.control.GoogleAuthService;
 import com.fisnikz.snapdrive.api.users.control.UsersService;
 import com.fisnikz.snapdrive.api.users.entity.CreateUserMasterPasswordRequest;
-import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
+import com.fisnikz.snapdrive.api.users.control.LoggedInUserInfo;
 import com.fisnikz.snapdrive.api.users.entity.User;
 import com.fisnikz.snapdrive.logging.Logged;
 
@@ -56,7 +55,7 @@ public class UsersResource {
         }
 //        CompletableFuture.runAsync(response::resume);
 //        CompletableFuture
-//                .supplyAsync(() -> usersService.signInWithGoogle(createUserRequest))
+//                .supplyAsync(() -> usersService.addOrUpdateUser(createUserRequest))
 //                .thenAccept(response::resume);
     }
 

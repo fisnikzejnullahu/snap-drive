@@ -75,7 +75,7 @@
           </div>
           <div class="modal-footer" v-if="!sharedFile">
             <button
-              class="btn btn-info btn-block"
+              class="btn btn-info btn-block rounded"
               style="color: #fff"
               @click="shareFile"
             >
@@ -87,7 +87,7 @@
               :textColor="'#fff'"
               :clicked="clickedDelete"
               :enableClickHandler="true"
-              :classNames="'btn btn-danger btn-block'"
+              :classNames="'btn btn-danger btn-block rounded'"
               @onClick="deleteFile"
             />
           </div>

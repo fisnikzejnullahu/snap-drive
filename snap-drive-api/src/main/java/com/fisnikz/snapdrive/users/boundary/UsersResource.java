@@ -6,10 +6,8 @@ import com.fisnikz.snapdrive.users.control.UsersService;
 import com.fisnikz.snapdrive.users.entity.CreateUserMasterPasswordRequest;
 import com.fisnikz.snapdrive.users.entity.SignInWithGoogleRequest;
 import com.fisnikz.snapdrive.users.entity.User;
-import com.fisnikz.snapdrive.users.entity.UserLoginRequest;
 
 import javax.inject.Inject;
-import javax.json.Json;
 import javax.json.JsonObject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -30,7 +28,12 @@ public class UsersResource {
     @POST
     @Path("signin")
     public Response signInWithGoogle(SignInWithGoogleRequest signInWithGoogleRequest) {
-        return usersService.signInWithGoogle(signInWithGoogleRequest);
+        return usersService.signInWithGoogle(signInWithGoogleRequest.getEmail(), signInWithGoogleRequest.getGoogleId());
+    }
+
+    @PUT
+    public Response addOrUpdateUser(User user) {
+        return usersService.addOrUpdate(user);
     }
 
     @POST
@@ -39,18 +42,11 @@ public class UsersResource {
         return usersService.createMasterPassword(userId, createUserMasterPasswordRequest);
     }
 
-    @PUT
-    @Path("{id}")
-    public Response updateUser(@PathParam("id") String userId, User user) {
-        usersService.updateUser(userId, user);
-        return Response.noContent().build();
-    }
-
     @GET
     public JsonObject getUserWithGivenFields(@QueryParam("email") String userEmail,
                                              @QueryParam("fields") String fields) {
 
-        if (userEmail != null || !userEmail.trim().isEmpty()) {
+        if (userEmail != null && !userEmail.trim().isEmpty()) {
             return usersService.getUserWithGivenFields(userEmail, fields);
         }
 

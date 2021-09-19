@@ -26,6 +26,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -99,10 +102,14 @@ public class GoogleDriveService {
     }
 
     public List<DriveFile> getFiles(boolean sharedWithMeOnly) throws IOException {
-        String queryParams = "mimeType='application/zip' and name contains 'snapdrive'";
+        System.out.println("sharedWithMeOnly = " + sharedWithMeOnly);
+//        String queryParams = "mimeType='application/zip' and name contains 'snapdrive' and 'avdia650@gmail.com' in writers";
+        String queryParams = "mimeType='application/zip' and name contains 'snapdrive' and visibility = 'limited'";
         if (sharedWithMeOnly) {
             queryParams += " and sharedWithMe";
         }
+
+        System.out.println("queryParams = " + queryParams);
 
         FileList result = getDriveService().files().list()
                 .setPageSize(10)
@@ -111,15 +118,17 @@ public class GoogleDriveService {
                 .execute();
 
         List<File> files = result.getFiles();
-        System.out.println("result.size() = " + result.size());
         System.out.println("result.getNextPageToken() " + result.getNextPageToken());
 
         List<DriveFile> driveFiles = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")
+                    .withZone(ZoneId.systemDefault());
             for (File file : files) {
-                System.out.println(file.getId());
+                System.out.println("googleId: " + file.getId());
+                String formattedDate = dateFormatter.format(Instant.ofEpochMilli(file.getCreatedTime().getValue()));
                 if (sharedWithMeOnly) {
-                    driveFiles.add(new DriveFile(file.getId(), file.getSize(), file.getCreatedTime().toString(), file.getSharingUser().getEmailAddress()));
+                    driveFiles.add(new DriveFile(file.getId(), file.getSize(), formattedDate, file.getSharingUser().getEmailAddress()));
                 } else {
                     List<FilePermission> permissions = new ArrayList<>();
                     if (file.getPermissions() != null) {
@@ -127,7 +136,7 @@ public class GoogleDriveService {
                             permissions.add(new FilePermission(p.getEmailAddress(), p.getRole()));
                         });
                     }
-                    driveFiles.add(new DriveFile(file.getId(), file.getSize(), file.getCreatedTime().toString(), permissions));
+                    driveFiles.add(new DriveFile(file.getId(), file.getSize(), formattedDate, permissions));
                 }
             }
         }

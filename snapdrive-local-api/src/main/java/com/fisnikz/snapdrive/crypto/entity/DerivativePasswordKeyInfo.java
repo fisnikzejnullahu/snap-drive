@@ -5,13 +5,13 @@ import javax.crypto.SecretKey;
 /**
  * @author Fisnik Zejnullahu
  */
-public class MasterPasswordKeyInfo {
+public class DerivativePasswordKeyInfo {
 
     private SecretKey secretKey;
     private byte[] salt;
     private int iterations;
 
-    public MasterPasswordKeyInfo(SecretKey secretKey, byte[] salt, int iterations) {
+    public DerivativePasswordKeyInfo(SecretKey secretKey, byte[] salt, int iterations) {
         this.secretKey = secretKey;
         this.salt = salt;
         this.iterations = iterations;

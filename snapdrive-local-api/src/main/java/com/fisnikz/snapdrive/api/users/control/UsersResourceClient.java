@@ -29,12 +29,7 @@ public interface UsersResourceClient {
     User createMasterPassword(@PathParam("id") String userId, CreateUserMasterPasswordRequest createUserMasterPasswordRequest);
 
     @PUT
-    @Path("{id}")
-    Response updateUser(@PathParam("id") String userId, User user);
-
-    @POST
-    @Path("login")
-    Response login(UserLoginRequest loginRequest);
+    Response addOrUpdateUser(User user);
 
     @GET
     JsonObject getUserWithGivenFields(@QueryParam("email") String recipientEmail,

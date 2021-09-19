@@ -5,8 +5,6 @@ import Settings from "../views/Settings.vue";
 import Drive from "../views/Drive.vue";
 import SharedDrive from "../views/SharedDrive.vue";
 import DriveUnlock from "../views/DriveUnlock.vue";
-import UserProfile from "../components/UserProfile.vue";
-import UserPassword from "../components/UserPassword.vue";
 import UserMasterPassword from "../components/UserMasterPassword.vue";
 
 import store from "../store";
@@ -34,14 +32,6 @@ const routes = [
     name: "Settings",
     component: Settings,
     children: [
-      {
-        path: "profile",
-        component: UserProfile,
-      },
-      {
-        path: "password",
-        component: UserPassword,
-      },
       {
         path: "masterpassword",
         component: UserMasterPassword,

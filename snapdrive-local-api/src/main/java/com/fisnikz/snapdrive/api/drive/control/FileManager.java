@@ -34,9 +34,14 @@ import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.encodeToBase64
 @Logged
 public class FileManager {
 
-    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
-    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
-    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
+//    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
+//    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
+//    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
+
+    private final String DOWNLOADS_PATH = "/snap-files/";
+    private final String TO_UPLOAD_PATH = "/snap-files/toUpload/";
+    private final String LOCAL_DECRYPTED_FILES_PATH = "/snap-files/local/";
+
 
     @Inject
     CryptoService cryptoService;
@@ -163,32 +168,32 @@ public class FileManager {
         Files.writeString(Path.of(folder.getAbsolutePath() + "/.config"), JsonbBuilder.create().toJson(result), StandardOpenOption.WRITE);
     }
 
-    void updateFileKey(File file, User user, String newPublicKeyBase64, String oldMasterPassword) {
-        try {
-            File configFile = new File(file.getAbsolutePath() + "/.config");
-
-            FileEncryptionFinalResult result = JsonbBuilder.create()
-                    .fromJson(new ByteArrayInputStream(Files.readAllBytes(Path.of(configFile.getAbsolutePath()))), FileEncryptionFinalResult.class);
-
-            System.out.println("########################");
-            System.out.println(result.getSharedUsers().size());
-            System.out.println("########################");
-            System.out.println(JsonbBuilder.create().toJson(result));
-
-            String newKey = this.cryptoService.updateFileEncryptionKey(oldMasterPassword, user.getDerivativeSalt(),
-                    user.getPrivateKey(), user.getDerivativeIterations(), user.getNonce(),
-                    result.getBase64FileKey(), newPublicKeyBase64);
-
-            result.setBase64FileKey(newKey);
-
-
-            String newJsonConfig = JsonbBuilder.create().toJson(result);
-
-            Files.writeString(Path.of(configFile.getAbsolutePath()), newJsonConfig, StandardOpenOption.WRITE);
-        } catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException | IllegalBlockSizeException | InvalidKeyException | BadPaddingException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-    }
+//    void updateFileKey(File file, User user, String newPublicKeyBase64, String oldMasterPassword) {
+//        try {
+//            File configFile = new File(file.getAbsolutePath() + "/.config");
+//
+//            FileEncryptionFinalResult result = JsonbBuilder.create()
+//                    .fromJson(new ByteArrayInputStream(Files.readAllBytes(Path.of(configFile.getAbsolutePath()))), FileEncryptionFinalResult.class);
+//
+//            System.out.println("########################");
+//            System.out.println(result.getSharedUsers().size());
+//            System.out.println("########################");
+//            System.out.println(JsonbBuilder.create().toJson(result));
+//
+//            String newKey = this.cryptoService.updateFileEncryptionKey(oldMasterPassword, user.getDerivativeSalt(),
+//                    user.getPrivateKey(), user.getDerivativeIterations(), user.getNonce(),
+//                    result.getBase64FileKey(), newPublicKeyBase64);
+//
+//            result.setBase64FileKey(newKey);
+//
+//
+//            String newJsonConfig = JsonbBuilder.create().toJson(result);
+//
+//            Files.writeString(Path.of(configFile.getAbsolutePath()), newJsonConfig, StandardOpenOption.WRITE);
+//        } catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException | IllegalBlockSizeException | InvalidKeyException | BadPaddingException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     FileEncryptionFinalResult readConfigFileToEncryptionResult(File folder) throws IOException {
         File configFile = new File(folder.getAbsolutePath() + "/.config");

@@ -53,7 +53,7 @@
           >
         </li>
         <li :class="isActiveClass('/settings')">
-          <router-link to="/settings/profile">
+          <router-link to="/settings/masterpassword">
             <span class="mr-2"
               ><svg
                 :fill="
@@ -143,10 +143,10 @@
         ></div>
       </div>
 
-      <div class="mt-4">
+      <!-- <div class="mt-4">
         <span>Cloud Provider:</span>
         <img src="@/assets/googlecloud.png" style="width: 100%" alt="" />
-      </div>
+      </div> -->
 
       <button
         @click="onLogoutClick"

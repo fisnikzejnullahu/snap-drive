@@ -3,7 +3,7 @@ package com.fisnikz.snapdrive.api.drive.boundary;
 import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
 import com.fisnikz.snapdrive.api.drive.control.DriveService;
 import com.fisnikz.snapdrive.api.drive.entity.*;
-import com.fisnikz.snapdrive.api.users.entity.LoggedInUserInfo;
+import com.fisnikz.snapdrive.api.users.control.LoggedInUserInfo;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
 
@@ -17,11 +17,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -75,6 +72,12 @@ public class DriveResource {
         boolean sharedFile = uriInfo.getQueryParameters().containsKey("sharedFile");
         DownloadedFileMetadata downloadedFileMetadata = driveService.downloadDecryptedFile(fileId, sharedFile);
 
+        //TODO http error ...
+        /*
+            This page isn’t working
+            localhost sent an invalid response.
+            ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION
+         */
         return Response.ok(downloadedFileMetadata.getBytes(), downloadedFileMetadata.getMimeType())
                 .header("Content-disposition", "attachment; filename=" + downloadedFileMetadata.getFileName())
                 .build();
