@@ -14,56 +14,10 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
-// import SpinningButton from "../components/SpinningButton.vue";
 export default {
-  // components: { SpinningButton },
-  data() {
-    return {
-      username: "",
-      registerAt: "",
-      newPassword: "",
-      newPasswordConfirm: "",
-      newMasterPassword: "",
-      newMasterPasswordConfirm: "",
-      clicked: false,
-      loaded: false,
-    };
-  },
-  computed: {
-    ...mapGetters(["currentUser"]),
-  },
-  mounted() {
-    this.username = this.currentUser.username;
-    this.registerAt = this.currentUser.registerAt;
-  },
   methods: {
     isActiveClass(link) {
       return "/settings/" + link === this.$route.path ? "active" : "";
-    },
-    async saveChanges() {
-      console.log("haha");
-      if (this.newMasterPassword !== this.newMasterPasswordConfirm) {
-        alert("master passwords do not match");
-        return;
-      }
-
-      this.clicked = true;
-
-      let data = {
-        username: this.username,
-        newPassword: this.newPassword.length !== 0 ? this.newPassword : null,
-        newMasterPassword:
-          this.newMasterPassword.length !== 0 ? this.newMasterPassword : null,
-      };
-
-      let response = await fetch("http://localhost:9091/users", {
-        method: "PUT",
-        body: JSON.stringify(data),
-        headers: {
-          "content-type": "application/json",
-        },
-      });
     },
   },
 };

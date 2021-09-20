@@ -126,7 +126,7 @@ export default {
   data() {
     return {
       clicked: false,
-      apiUrl: "http://localhost:9091",
+      apiUrl: "http://localhost:8882",
       disabled: false,
       googleBtnText: "Sign in with Google",
     };
@@ -135,36 +135,40 @@ export default {
     ...mapActions(["onUserLogin"]),
     async signIn() {
       this.disabled = true;
-      const authCode = await this.$gAuth.getAuthCode();
-      console.log(authCode);
-      let response = await fetch(
-        `${this.apiUrl}/users/signin?authCode=${authCode}`,
-        {
-          method: "POST",
-        }
-      );
+      try {
+        const authCode = await this.$gAuth.getAuthCode();
+        console.log(authCode);
+        let response = await fetch(
+          `${this.apiUrl}/users/signin?authCode=${authCode}`,
+          {
+            method: "POST",
+          }
+        );
 
-      if (response.ok) {
-        this.googleBtnText = "Signing in...";
-        let user = await response.json();
-        this.onUserLogin(user);
+        if (response.ok) {
+          this.googleBtnText = "Signing in...";
+          let user = await response.json();
+          this.onUserLogin(user);
 
-        /*
+          /*
           if user just created, then we forward to driveunlock view, with param creteMasterPassword = True
           In DriveUnlock if creteMasterPassword = true, that will make a http request to api that creates new master password
           Else if creteMasterPassword = false, DriveUnlock will make a http request to api that tries to unlock drive
         */
-        if (response.status === 201) {
-          this.$router.push({
-            name: "DriveUnlock",
-            params: { createMasterPassword: true },
-          });
-        } else if (response.status === 200) {
-          this.$router.push({
-            name: "DriveUnlock",
-            params: { createMasterPassword: false },
-          });
+          if (response.status === 201) {
+            this.$router.push({
+              name: "DriveUnlock",
+              params: { createMasterPassword: true },
+            });
+          } else if (response.status === 200) {
+            this.$router.push({
+              name: "DriveUnlock",
+              params: { createMasterPassword: false },
+            });
+          }
         }
+      } catch (e) {
+        this.disabled = false;
       }
     },
   },

@@ -6,14 +6,16 @@ import javax.inject.Inject;
 import javax.json.Json;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
 import java.lang.System.Logger;
 
 /**
  * @author Fisnik Zejnullahu
  */
-//@Provider
-//@PreMatching
+@Provider
+@PreMatching
 public class ClientFilter implements ContainerRequestFilter {
 
     @Inject

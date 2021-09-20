@@ -140,7 +140,7 @@ export default {
       uploading: false,
       uploadingFile: {},
       searchQuery: "",
-      apiUrl: "http://localhost:9091/drive",
+      apiUrl: "http://localhost:8882/drive",
       sharedFiles: [],
     };
   },

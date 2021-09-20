@@ -63,9 +63,9 @@
           <p
             class="text-center forgot"
             style="cursor: pointer"
-            @click="loginWithAnotherAccount"
+            @click="backToHome"
           >
-            Login with another account
+            ← Back to home
           </p>
         </div>
       </form>
@@ -89,7 +89,7 @@ export default {
       show: false,
       apiMessage: "",
       success: true,
-      apiUrl: "http://localhost:9091/users",
+      apiUrl: "http://localhost:8882/users",
     };
   },
   mounted() {
@@ -107,9 +107,9 @@ export default {
   },
   methods: {
     ...mapActions(["unlock", "logout"]),
-    loginWithAnotherAccount() {
+    backToHome() {
       this.logout();
-      this.$router.push("/login");
+      this.$router.push("/");
     },
     async onSubmit(e) {
       this.clicked = true;

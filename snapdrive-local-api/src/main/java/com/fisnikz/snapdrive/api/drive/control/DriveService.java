@@ -1,15 +1,11 @@
 package com.fisnikz.snapdrive.api.drive.control;
 
 import com.fisnikz.snapdrive.api.ResponseWithJsonBodyBuilder;
-import com.fisnikz.snapdrive.api.drive.entity.DownloadedFileMetadata;
-import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
-import com.fisnikz.snapdrive.api.drive.entity.FilePermission;
-import com.fisnikz.snapdrive.api.drive.entity.FileUploadForm;
+import com.fisnikz.snapdrive.api.drive.entity.*;
 import com.fisnikz.snapdrive.api.users.control.LoggedInUserInfo;
 import com.fisnikz.snapdrive.api.users.control.UsersResourceClient;
 import com.fisnikz.snapdrive.crypto.boundary.CryptoService;
 import com.fisnikz.snapdrive.crypto.entity.FileEncryptionFinalResult;
-import com.fisnikz.snapdrive.crypto.entity.MasterPasswordCryptoResults;
 import com.fisnikz.snapdrive.logging.Logged;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -42,6 +38,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.List;
+import java.util.Locale;
 
 import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.decodeFromBase64;
 
@@ -52,11 +49,7 @@ import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.decodeFromBase
 @Logged
 public class DriveService {
 
-//    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
-//    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
-//    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
-
-    private final String TO_UPLOAD_PATH = "/snap-files/toUpload/";
+    private final String TO_UPLOAD_PATH = System.getProperty("java.io.tmpdir") + "/snap-files/toUpload/";
 
     @Inject
     CryptoService cryptoService;
@@ -80,21 +73,6 @@ public class DriveService {
     @Inject
     Logger LOG;
 
-    public static String humanReadableByteCountBin(long bytes) {
-        long absB = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
-        if (absB < 1024) {
-            return bytes + " B";
-        }
-        long value = absB;
-        CharacterIterator ci = new StringCharacterIterator("KMGTPE");
-        for (int i = 40; i >= 0 && absB > 0xfffccccccccccccL >> i; i -= 10) {
-            value >>= 10;
-            ci.next();
-        }
-        value *= Long.signum(bytes);
-        return String.format("%.1f %cB", value / 1024.0, ci.current());
-    }
-
     // @return all the files (with decrypted fileName) of the logged in user
     public JsonObject getAllFiles(boolean sharedWithMeOnly) {
         try {
@@ -108,8 +86,12 @@ public class DriveService {
 
             JsonObjectBuilder responseData;
             if (!sharedWithMeOnly) {
-                responseData = Json.createObjectBuilder(googleDriveService.getStorageQuota())
-                        .addAll(totalSnapDriveStorageSizeToJson(totalSize))
+                GoogleStorageQuota storageQuota = googleDriveService.getStorageQuota();
+                responseData = Json.createObjectBuilder()
+                        .add("storageLimit", humanReadableByteCountBin(storageQuota.getStorageLimit()))
+                        .add("storageInDrive", humanReadableByteCountBin(storageQuota.getStorageInGoogleDrive()))
+                        .add("storageInGCM", humanReadableByteCountBin(storageQuota.getStorageInGCM()))
+                        .addAll(totalSnapDriveStorageSizeToJson(totalSize, storageQuota))
                         .add("files", driveFiles);
 
             } else {
@@ -179,23 +161,19 @@ public class DriveService {
     }
 
     public String uploadToGoogleDrive(FileUploadForm uploadForm) throws IOException {
-        var start = System.currentTimeMillis();
         File toUploadFile = new File(TO_UPLOAD_PATH + uploadForm.fileName);
 
         /*
-            Because the application is accessed from localhost (frontend vue app), when we upload file from frontend
+            The application is accessed from localhost (frontend vue app). When we upload file from frontend
             we need to copy those uploaded form bytes in a local (temporary file) so we can do the encryption to that file.
-            And in the end we will delete these local files and only upload encrypted bytes to server!
+            In the end we will upload encrypted file to server and delete all those local files!
          */
         Files.copy(
                 uploadForm.fileData,
                 toUploadFile.toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
 
-        LOG.log(Logger.Level.INFO, "Copying Process Took: " + (System.currentTimeMillis() - start));
 
-
-//        File encryptedZipFile = fileManager.encryptFile(new File("C:\\Users\\Fisnik\\Downloads\\Boxcryptor_v2.47.1752_Setup.msi"), loggedInUserInfo.getUser());
         File encryptedZipFile = fileManager.encryptFile(toUploadFile, loggedInUserInfo.getUser());
 
         String fileId = googleDriveService.uploadFile(encryptedZipFile);
@@ -241,22 +219,26 @@ public class DriveService {
 
     public JsonObject calculateTotalStorageSize() {
         try {
-            JsonObject driveStorageQuota = googleDriveService.getStorageQuota();
+            GoogleStorageQuota storageQuota = googleDriveService.getStorageQuota();
             Long totalSize = googleDriveService.getFiles(false).stream().map(DriveFile::getSize).reduce(0L, Long::sum);
-            return Json
-                    .createObjectBuilder(driveStorageQuota)
-                    .addAll(totalSnapDriveStorageSizeToJson(totalSize))
+
+            return Json.createObjectBuilder()
+                    .add("storageLimit", humanReadableByteCountBin(storageQuota.getStorageLimit()))
+                    .add("storageInDrive", humanReadableByteCountBin(storageQuota.getStorageInGoogleDrive()))
+                    .add("storageInGCM", humanReadableByteCountBin(storageQuota.getStorageInGCM()))
+                    .addAll(totalSnapDriveStorageSizeToJson(totalSize, storageQuota))
                     .build();
+
         } catch (IOException e) {
             e.printStackTrace();
             throw new WebApplicationException(ResponseWithJsonBodyBuilder.withInternalError());
         }
     }
 
-    public JsonObjectBuilder totalSnapDriveStorageSizeToJson(long totalBytes) {
+    public JsonObjectBuilder totalSnapDriveStorageSizeToJson(long totalBytes, GoogleStorageQuota googleStorageQuota) {
         return Json.createObjectBuilder()
                 .add("storageSizeSnapDrive", humanReadableByteCountBin(totalBytes))
-                .add("storageSizeSnapDrivePercentage", totalUsedPercentage(totalBytes));
+                .add("storageSizeSnapDrivePercentage", totalUsedPercentage(totalBytes, googleStorageQuota.getStorageLimit()));
     }
 
     private JsonObjectBuilder downloadAndDecryptFileName(DriveFile driveFile, boolean sharedFile) {
@@ -282,6 +264,7 @@ public class DriveService {
                     .add("fileName", decryptedFileName)
                     .add("readableSize", humanReadableByteCountBin(driveFile.getSize()));
         } catch (IOException ex) {
+            ex.printStackTrace();
             return Json.createObjectBuilder()
                     .add("success", false)
                     .add("message", "Something went wrong!");
@@ -300,14 +283,25 @@ public class DriveService {
 
     }
 
-    private double totalUsedPercentage(long bytes) {
-        //in GB
-        int totalFreeSpace = 15;
-        double usedSpace = (double) bytes / 1024 / 1024 / 1024;
-
-        double percentage = (usedSpace / totalFreeSpace) * 100;
+    private String totalUsedPercentage(long snapDriveSize, long storageLimit) {
+        double percentage = ((double) snapDriveSize / storageLimit) * 100;
         System.out.println("percentage = " + percentage);
-        return percentage;
-//        return String.format(Locale.US, "%.2f", percentage);
+        return String.format(Locale.US, "%.2f", percentage);
+//        return percentage;
+    }
+
+    public String humanReadableByteCountBin(long bytes) {
+        long absB = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
+        if (absB < 1024) {
+            return bytes + " B";
+        }
+        long value = absB;
+        CharacterIterator ci = new StringCharacterIterator("KMGTPE");
+        for (int i = 40; i >= 0 && absB > 0xfffccccccccccccL >> i; i -= 10) {
+            value >>= 10;
+            ci.next();
+        }
+        value *= Long.signum(bytes);
+        return String.format("%.1f %cB", value / 1024.0, ci.current());
     }
 }

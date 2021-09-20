@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  snapdrive-api:
+    build:
+      context: snap-drive-api
+      dockerfile: src/main/docker/Dockerfile.jvm
+    ports:
+      - "8881:8080"
+    environment:
+      QUARKUS_HTTP_PORT: 8080
+      FIREBASE_SERVICE_ACCOUNT_FILE_PATH: /etc/opt/snapdrive/serviceAccount.json
+    volumes:
+      - type: bind
+        source: ./snap-drive-api/serviceAccount.json
+        target: /etc/opt/snapdrive/serviceAccount.json
+
+  snapdrive-local-api:
+    build:
+      context: snapdrive-local-api
+      dockerfile: src/main/docker/Dockerfile.jvm
+    ports:
+      - "8882:8080"
+    environment:
+      QUARKUS_HTTP_PORT: 8080
+      users/mp-rest/url: "http://snapdrive-api:8080"
+  snapdrive-frontend:
+    build:
+      context: snap-drive-vue-app
+      dockerfile: Dockerfile
+    ports:
+      - "8883:8080"

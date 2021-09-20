@@ -11,7 +11,9 @@ const mutations = {
     state.size = size;
   },
   DELETE_FILE(state, fileId) {
-    let fileIndex = state.files.findIndex((file) => file.id === fileId);
+    let fileIndex = state.files.findIndex(
+      (file) => file.googleDriveId === fileId
+    );
     state.files.splice(fileIndex, 1);
   },
   ADD_FILE(state, newFile) {

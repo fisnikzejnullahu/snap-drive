@@ -2,6 +2,7 @@ package com.fisnikz.snapdrive.api.drive.control;
 
 import com.fisnikz.snapdrive.api.drive.entity.DriveFile;
 import com.fisnikz.snapdrive.api.drive.entity.FilePermission;
+import com.fisnikz.snapdrive.api.drive.entity.GoogleStorageQuota;
 import com.fisnikz.snapdrive.api.users.control.GoogleAuthService;
 import com.fisnikz.snapdrive.logging.Logged;
 import com.google.api.client.auth.oauth2.BearerToken;
@@ -20,7 +21,6 @@ import com.google.api.services.drive.model.Permission;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.Json;
-import javax.json.JsonObject;
 import javax.ws.rs.WebApplicationException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fisnikz.snapdrive.api.drive.control.DriveService.humanReadableByteCountBin;
-
 /**
  * @author Fisnik Zejnullahu
  */
@@ -46,8 +44,7 @@ public class GoogleDriveService {
     GoogleAuthService googleAuthService;
 
     private Drive getDriveService() throws IOException {
-        //"ya29.a0ARrdaM-Bt5hSySj3NoLSVPSi-No2j2Oky8eIUdSP7YU1vVz6VhTai9bx5DCvYpvctFIHPYXP2_4U8SKDky6gtTtXX6iiT7zLqC9-zZ9m1WscRPJba6E1EVmhrHRI9lxuMyfF4r8qX6CLdomMMFwe9XFjPUVr"
-        // expired token provo per exception mapper..
+        //TODO handle refreshToken when access token expires in google oauth
         Credential credential =
                 new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(googleAuthService.getAccessToken());
         HttpRequestFactory requestFactory = new ApacheHttpTransport().createRequestFactory(credential);
@@ -59,8 +56,6 @@ public class GoogleDriveService {
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
             throw new WebApplicationException(408);
-            //TODO provoje me accessTOKEN tskadum. edhe provo me funksionalizu exceptionmapperin ose diqysh tjeter qe kur tndodh 401 prej google
-            //TODO provo meniher me refreshToken() edhe provo apet, nese sbon kthe 401 te useri
         }
     }
 
@@ -147,18 +142,14 @@ public class GoogleDriveService {
         getDriveService().files().delete(fileId).execute();
     }
 
-    public JsonObject getStorageQuota() throws IOException {
+    public GoogleStorageQuota getStorageQuota() throws IOException {
         About about = getDriveService()
                 .about()
                 .get()
                 .setFields("storageQuota")
                 .execute();
 
-        return Json.createObjectBuilder()
-                .add("storageLimit", humanReadableByteCountBin(about.getStorageQuota().getLimit()))
-                .add("storageInDrive", humanReadableByteCountBin(about.getStorageQuota().getUsageInDrive()))
-                .add("storageInGCM", humanReadableByteCountBin(about.getStorageQuota().getUsage()))
-                .build();
+        return new GoogleStorageQuota(about.getStorageQuota().getLimit(), about.getStorageQuota().getUsageInDrive(), about.getStorageQuota().getUsage());
     }
 
     public void downloadFile(String fileId, String writeToFilePath) throws IOException {

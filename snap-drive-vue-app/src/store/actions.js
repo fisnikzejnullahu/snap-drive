@@ -1,4 +1,4 @@
-const apiUrl = "http://localhost:9091";
+const apiUrl = "http://localhost:8882";
 
 export const onUserLogin = ({ commit }, user) => {
   commit("LOGGED_IN", {

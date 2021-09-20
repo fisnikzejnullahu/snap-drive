@@ -54,6 +54,7 @@ public class UsersService {
         SignInWithGoogleResponse signInWithGoogleResponse = googleAuthService.signInWithGoogle(authorizationCode);
         Response response = usersResourceClient.signInWithGoogle(signInWithGoogleResponse);
 
+        System.out.println("response = " + response.getStatus());
         User user = response.readEntity(User.class);
         System.out.println(JsonbBuilder.create().toJson(user));
         loggedInUserInfo.setUser(user);

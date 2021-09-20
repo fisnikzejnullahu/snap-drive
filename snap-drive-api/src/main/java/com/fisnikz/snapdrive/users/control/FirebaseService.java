@@ -12,9 +12,11 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +31,9 @@ import java.util.concurrent.ExecutionException;
 @Logged
 public class FirebaseService {
 
-    private static final String CREDENTIALS_FILE_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snap-drive-api\\serviceAccount.json";
+    @Inject
+    @ConfigProperty(name = "FIREBASE.SERVICE.ACCOUNT.FILE.PATH", defaultValue = "../serviceAccount.json")
+    String serviceAccountPath;
 
     @PostConstruct
     public void init() throws IOException {
@@ -37,7 +41,7 @@ public class FirebaseService {
     }
 
     private void initDb() throws IOException {
-        InputStream serviceAccount = new FileInputStream(CREDENTIALS_FILE_PATH);
+        InputStream serviceAccount = new FileInputStream(serviceAccountPath);
         GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
         FirebaseOptions options = new FirebaseOptions.Builder()
                 .setCredentials(credentials)

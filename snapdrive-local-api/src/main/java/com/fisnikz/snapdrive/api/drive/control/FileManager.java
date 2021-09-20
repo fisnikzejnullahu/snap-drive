@@ -34,13 +34,9 @@ import static com.fisnikz.snapdrive.crypto.boundary.CryptoService.encodeToBase64
 @Logged
 public class FileManager {
 
-//    private final String DOWNLOADS_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\";
-//    private final String TO_UPLOAD_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\toUpload\\";
-//    private final String LOCAL_DECRYPTED_FILES_PATH = "C:\\Users\\Fisnik\\Desktop\\My\\java\\projects\\snap-drive\\snapdrive-local-api\\snap-files\\local\\";
-
-    private final String DOWNLOADS_PATH = "/snap-files/";
-    private final String TO_UPLOAD_PATH = "/snap-files/toUpload/";
-    private final String LOCAL_DECRYPTED_FILES_PATH = "/snap-files/local/";
+    private final String DOWNLOADS_PATH = System.getProperty("java.io.tmpdir") + "/snap-files/";
+    private final String TO_UPLOAD_PATH = System.getProperty("java.io.tmpdir") + "/snap-files/toUpload/";
+    private final String LOCAL_DECRYPTED_FILES_PATH = System.getProperty("java.io.tmpdir") + "/snap-files/local/";
 
 
     @Inject

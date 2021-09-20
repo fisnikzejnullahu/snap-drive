@@ -95,11 +95,6 @@ public class CryptoService {
 
         FileEncryptionInfo fileEncryptionResult = this.encryptFile(inputFile);
 
-        System.out.println("----------------------------------FILE KEY");
-        System.out.println(fileEncryptionResult.getSecretKey().getEncoded().length);
-        System.out.println(encodeToBase64(fileEncryptionResult.getSecretKey().getEncoded()));
-        System.out.println("----------------------------------FILE KEY");
-
         byte[] encryptedFileKey = this.encryptFileKeyWithPubKey(fileEncryptionResult.getSecretKey(),
                 (PublicKey) this.generateRSAKeyFromBase64(user.getPublicKey(), false));
 

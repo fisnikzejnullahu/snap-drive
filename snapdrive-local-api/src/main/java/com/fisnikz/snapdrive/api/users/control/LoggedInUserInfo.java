@@ -24,25 +24,25 @@ import java.security.spec.InvalidKeySpecException;
  * @author Fisnik Zejnullahu
  */
 @ApplicationScoped
-//@Startup
+@Startup
 public class LoggedInUserInfo {
 
     @Inject
     @RestClient
     UsersResourceClient usersResourceClient;
 
-//    @PostConstruct
-//    public void init() {
-//
-//        Response response = usersResourceClient.signInWithGoogle(new SignInWithGoogleResponse("jessbrooks131@gmail.com", "104023429820123018703"));
-//        User user = response.readEntity(User.class);
-//        setUser(user);
-//        unlock("1234");
-//
-//        System.out.println("INIT+++++++++++++++++++++++++++++");
-//        System.out.println(user.getPrivateKey());
-//        System.out.println("INIT++++++++++++++++++++++++++++++++");
-//    }
+    @PostConstruct
+    public void init() {
+
+        Response response = usersResourceClient.signInWithGoogle(new SignInWithGoogleResponse("scarol940@gmail.com", "103147873560646130252"));
+        User user = response.readEntity(User.class);
+        setUser(user);
+        unlock("123");
+
+        System.out.println("INIT+++++++++++++++++++++++++++++");
+        System.out.println(user.getPrivateKey());
+        System.out.println("INIT++++++++++++++++++++++++++++++++");
+    }
 
 
     @Inject

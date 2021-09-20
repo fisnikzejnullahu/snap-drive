@@ -124,12 +124,11 @@
         Total storage that Snap Drive took in your google cloud:
       </span>
       <p>
-        {{ driveSize.storageSizeSnapDrive }} / {{ driveSize.storageLimit }} (
-        {{
+        {{ driveSize.storageSizeSnapDrive }} / {{ driveSize.storageLimit }} ({{
           (
             Math.round(driveSize.storageSizeSnapDrivePercentage * 100) / 100
           ).toFixed(2)
-        }}% Full)
+        }}%)
       </p>
 
       <div class="progress rounded">

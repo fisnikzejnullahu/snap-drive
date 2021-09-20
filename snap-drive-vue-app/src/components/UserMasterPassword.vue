@@ -78,7 +78,7 @@ export default {
       };
 
       let response = await fetch(
-        "http://localhost:9091/users/settings/master-password",
+        "http://localhost:8882/users/settings/master-password",
         {
           method: "PUT",
           body: JSON.stringify(data),

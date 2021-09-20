@@ -37,8 +37,8 @@
       class="btn btn-light rounded"
       :href="
         !sharedFile
-          ? `http://localhost:9091/drive/download?fileId=${file.googleDriveId}`
-          : `http://localhost:9091/drive/download?fileId=${file.googleDriveId}&sharedFile`
+          ? `http://localhost:8882/drive/download?fileId=${file.googleDriveId}`
+          : `http://localhost:8882/drive/download?fileId=${file.googleDriveId}&sharedFile`
       "
       :download="file.fileName"
       ><svg

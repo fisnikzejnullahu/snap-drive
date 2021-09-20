@@ -72,12 +72,6 @@ public class DriveResource {
         boolean sharedFile = uriInfo.getQueryParameters().containsKey("sharedFile");
         DownloadedFileMetadata downloadedFileMetadata = driveService.downloadDecryptedFile(fileId, sharedFile);
 
-        //TODO http error ...
-        /*
-            This page isn’t working
-            localhost sent an invalid response.
-            ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION
-         */
         return Response.ok(downloadedFileMetadata.getBytes(), downloadedFileMetadata.getMimeType())
                 .header("Content-disposition", "attachment; filename=" + downloadedFileMetadata.getFileName())
                 .build();
