@@ -171,6 +171,10 @@ public class GoogleDriveService {
                 permissions.add(new FilePermission(p.getEmailAddress(), p.getRole()));
             });
         }
-        return new DriveFile(file.getId(), file.getSize(), file.getCreatedTime().toString(), permissions);
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")
+                .withZone(ZoneId.systemDefault());
+        String formattedDate = dateFormatter.format(Instant.ofEpochMilli(file.getCreatedTime().getValue()));
+
+        return new DriveFile(file.getId(), file.getSize(), formattedDate, permissions);
     }
 }
