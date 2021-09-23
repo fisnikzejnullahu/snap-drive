@@ -1,23 +1,11 @@
 # Snap Drive
-**Snap Drive** is an application that protects privacy of data that is stored 
-on public clouds (Snap Drive implements file uploading only in Google Drive). 
-The protection our of data gets achieved by using encryption, especially using the idea of end to end encryption.
+**Snap Drive** is an application that protects privacy of our files that we store on cloud (Snap Drive implements file uploading only in Google Drive). 
+The protection of our data gets achieved by using encryption, especially using the idea of end to end encryption.
 
-> **Note:** Snap Drive is not a "real production application". Snap Drive it's more about the idea 
-> how you can use encryption algorithms to protect your data. So don't use it
-> as a tool to encrypt your files. As the Snap Drive application implements a lot about
-> encryption and uploading in Google Drive, it's not fully tested to be a production ready application. 
+> **Note:** Snap Drive is not a "production ready application". Snap Drive it's more about the idea how you can sorts of encryption algorithms in order to protect privacy of your files. So, you shouldn't rely on it as a tool to start encrypting all your files, because even that Snap Drive application implements a lot about encryption & security of files (and uploading them in Google Drive), it's not fully tested to be a production ready application. 
 
-> **Google Drive API requirements:** Snap Drive uses Google Drive apis to upload files. So, there should 
-> be created a Google client that can be used to access Google Drive API itself. (https://developers.google.com/drive/api/v3/about-sdk).
-> I've created a simple project in Google Cloud (https://developers.google.com/workspace/guides/create-project) and enabled the
-> Google Drive API. Drive API is one of what's called 'sensitive scope' (https://developers.google.com/identity/protocols/oauth2/scopes). 
-> As for these sensitive scopes Google requires a verification process to make it available to everybody.
-> I didn't go through this process for my Snap Drive project, so you can't use it 
-> when you try to login with google in Snap Drive. Only if I add your email to allowed test users in my project.
-> But it's very simple to create your own Google Drive API client and then download your credentials or serviceAccount.json file and paste it in directory (`snap-drive-api/`).
-> You also should write some information about your client in `snap-drive-api/src/main/resources/application.properties`.
-> Also you should write your client_id in `main.js` file in snap-drive-vue-app. 
+> **Google Drive API requirements:** Snap Drive uses Google Drive API to upload files. That's why, a Google client must be created in order to access Google APIs (in our case Google Drive API). (https://developers.google.com/drive/api/v3/about-sdk). I've created a simple project in Google Cloud (https://developers.google.com/workspace/guides/create-project) and enabled the Google Drive API. Access of user's drive is one of what Google calls 'sensitive scope' (https://developers.google.com/identity/protocols/oauth2/scopes).  As for these sensitive scopes, Google requires a verification process to make it available to everyone. I didn't go through this process for my Snap Drive project, so you can't use it  when you try to login with Google in Snap Drive. Only if I add your email to "allowed test users" in my Google project. But, it's very simple to create your own Google Drive API client and then download your credentials or serviceAccount.json file and paste it in directory (`snap-drive-api/`). You also should write some information about your client in `snap-drive-api/src/main/resources/application.properties`. Also you should write your client_id in `main.js` file in snap-drive-vue-app. 
+
 ## Screenshots
 
 | Home Page                                                                                                         | Creation of master password                                                                                                    |
