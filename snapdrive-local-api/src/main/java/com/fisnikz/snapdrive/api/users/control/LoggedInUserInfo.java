@@ -14,6 +14,8 @@ import javax.crypto.NoSuchPaddingException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
+
+import java.lang.System.Logger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -28,22 +30,7 @@ import java.security.spec.InvalidKeySpecException;
 public class LoggedInUserInfo {
 
     @Inject
-    @RestClient
-    UsersResourceClient usersResourceClient;
-
-    @PostConstruct
-    public void init() {
-
-        Response response = usersResourceClient.signInWithGoogle(new SignInWithGoogleResponse("scarol940@gmail.com", "103147873560646130252"));
-        User user = response.readEntity(User.class);
-        setUser(user);
-        unlock("123");
-
-        System.out.println("INIT+++++++++++++++++++++++++++++");
-        System.out.println(user.getPrivateKey());
-        System.out.println("INIT++++++++++++++++++++++++++++++++");
-    }
-
+    Logger LOG;
 
     @Inject
     CryptoService cryptoService;
@@ -55,13 +42,15 @@ public class LoggedInUserInfo {
         if (this.isLoggedIn()) {
             try {
                 decryptedPrivateKey(masterPassword, user.getDerivativeSalt(), user.getNonce(), user.getPrivateKey());
+                LOG.log(Logger.Level.INFO, "Drive unlocked!");
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         }
-        System.out.println("NO USER LOGGED IN");
+
+        LOG.log(Logger.Level.INFO, "Drive was not unlocked!");
         return false;
     }
 
