@@ -98,7 +98,6 @@ public class GoogleDriveService {
 
     public List<DriveFile> getFiles(boolean sharedWithMeOnly) throws IOException {
         System.out.println("sharedWithMeOnly = " + sharedWithMeOnly);
-//        String queryParams = "mimeType='application/zip' and name contains 'snapdrive' and 'avdia650@gmail.com' in writers";
         String queryParams = "mimeType='application/zip' and name contains 'snapdrive' and visibility = 'limited'";
         if (sharedWithMeOnly) {
             queryParams += " and sharedWithMe";
